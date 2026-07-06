@@ -30,8 +30,14 @@ const fetchCurrentUser = async () => {
   try {
     const { data } = await api.get("/auth/me");
 
+    // Add safety checks
+    if (!data?.user) {
+      setUser(null);
+      return null;
+    }
+
     const currentUser: User = {
-      _id: data.user.id,
+      _id: data.user.id || data.user._id,
       username: data.user.username,
       email: data.user.email,
     };
@@ -40,12 +46,13 @@ const fetchCurrentUser = async () => {
     return currentUser;
   } catch (err: any) {
     if (err.response?.status === 401) {
-      // User is simply not logged in
+      console.log("👤 No active session (normal for guests)");
       setUser(null);
       return null;
     }
 
-    // Any other error should still be thrown
+    console.error("Auth check failed:", err);
+    setUser(null);
     throw err;
   }
 };
