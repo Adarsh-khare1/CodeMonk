@@ -1,6 +1,36 @@
 import User from '../models/User.model.js';
 import jwt from 'jsonwebtoken';
 
+const COOKIE_NAME = 'auth_token';
+
+const generateToken = (userId) =>
+  jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: '7d',
+  });
+
+const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  };
+};
+
+const setAuthCookie = (res, token) => {
+  res.cookie(COOKIE_NAME, token, getCookieOptions());
+};
+
+const clearAuthCookie = (res) => {
+  res.clearCookie(COOKIE_NAME, {
+    ...getCookieOptions(),
+    maxAge: undefined,
+  });
+};
+
 export const signup = async (req, res) => {
   const startTime = Date.now();
 
@@ -52,9 +82,8 @@ export const signup = async (req, res) => {
     await user.save();
 
     console.log('🔐 Generating JWT token...');
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     const duration = Date.now() - startTime;
     console.log('✅ Signup successful:', {
@@ -65,7 +94,6 @@ export const signup = async (req, res) => {
 
     res.status(201).json({
       message: 'User created successfully',
-      token,
       user: {
         id: user._id,
         username: user.username,
@@ -132,9 +160,8 @@ export const login = async (req, res) => {
     }
 
     console.log('🔐 Generating JWT token...');
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     const duration = Date.now() - startTime;
     console.log('✅ Login successful:', {
@@ -145,7 +172,6 @@ export const login = async (req, res) => {
 
     res.json({
       message: 'Login successful',
-      token,
       user: {
         id: user._id,
         username: user.username,
@@ -165,6 +191,39 @@ export const login = async (req, res) => {
     res.status(500).json({
       message: 'Server error',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
+export const getCurrentUser = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    res.json({
+      user: {
+        id: req.user._id,
+        username: req.user.username,
+        email: req.user.email,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+    });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    clearAuthCookie(res);
+    res.json({ message: 'Logout successful' });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
     });
   }
 };

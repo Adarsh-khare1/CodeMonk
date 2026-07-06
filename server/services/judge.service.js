@@ -4,7 +4,7 @@ import fetch from "node-fetch";
    Judge0 Self-Hosted Configuration
 ========================================= */
 
-const JUDGE0_URL = process.env.JUDGE0_URL || "http://localhost:2358";
+const JUDGE0_URL = process.env.JUDGE0_URL || process.env.JUDGE0_API_URL || "http://localhost:2358";
 const JUDGE0_API_KEY = process.env.JUDGE0_API_KEY || "";
 
 /* =========================================
@@ -36,11 +36,13 @@ const STATUS_MAP = {
   10: "Runtime Error",
   11: "Runtime Error",
   12: "Runtime Error",
-  13: "Internal Error"
+  13: "Internal Error",
+  14: "Execution Error"
 };
 
-const MAX_WAIT_TIME = 10000;
-const POLL_INTERVAL = 500;
+const MAX_WAIT_TIME = parseInt(process.env.JUDGE0_MAX_WAIT_MS || "30000", 10);
+const POLL_INTERVAL = parseInt(process.env.JUDGE0_POLL_INTERVAL_MS || "750", 10);
+const MEMORY_LIMIT_KB = 256000;
 
 /* =========================================
    Headers
@@ -65,6 +67,84 @@ const getHeaders = () => {
 const normalizeOutput = (out) => {
   if (!out) return "";
   return out.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+};
+
+const decodeBase64 = (value) => (value ? Buffer.from(value, "base64").toString() : "");
+
+const createExecutionTimeoutResult = () => ({
+  status: {
+    id: 14,
+    description: "Execution Error",
+  },
+  stdout: null,
+  stderr: null,
+  compile_output: null,
+  message: Buffer.from(
+    "Judge0 did not finish processing this submission within the configured polling window."
+  ).toString("base64"),
+  time: "0",
+  memory: 0,
+});
+
+const classifyStatus = (result, diagnosticsText = "") => {
+  const statusId = result?.status?.id;
+  const mappedStatus = STATUS_MAP[statusId] || result?.status?.description || "Error";
+  const loweredDiagnostics = diagnosticsText.toLowerCase();
+
+  if (
+    loweredDiagnostics.includes("memory limit") ||
+    loweredDiagnostics.includes("out of memory") ||
+    (mappedStatus === "Runtime Error" && Number(result?.memory || 0) >= MEMORY_LIMIT_KB)
+  ) {
+    return "Memory Limit Exceeded";
+  }
+
+  return mappedStatus;
+};
+
+const getStatusPriority = (status) => {
+  switch (status) {
+    case "Compilation Error":
+      return 7;
+    case "Memory Limit Exceeded":
+      return 6;
+    case "Time Limit Exceeded":
+      return 5;
+    case "Runtime Error":
+      return 4;
+    case "Internal Error":
+    case "Execution Error":
+      return 3;
+    case "Wrong Answer":
+      return 2;
+    case "Accepted":
+      return 1;
+    default:
+      return 0;
+  }
+};
+
+const buildAggregateStatus = (results) => {
+  if (!results.length) {
+    return "Accepted";
+  }
+
+  return results.reduce((current, testResult) => {
+    return getStatusPriority(testResult.status) > getStatusPriority(current)
+      ? testResult.status
+      : current;
+  }, "Accepted");
+};
+
+const isFatalJudgeStatus = (status) => {
+  return [
+    "Compilation Error",
+    "Runtime Error",
+    "Time Limit Exceeded",
+    "Memory Limit Exceeded",
+    "Internal Error",
+    "Execution Error",
+  ].includes(status);
 };
 
 /* =========================================
@@ -138,7 +218,9 @@ const pollSubmission = async (token) => {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL));
   }
 
-  throw new Error("Execution Timeout");
+  const timeoutError = new Error("Execution Timeout");
+  timeoutError.code = "JUDGE_TIMEOUT";
+  throw timeoutError;
 };
 
 /* =========================================
@@ -147,25 +229,32 @@ const pollSubmission = async (token) => {
 
 const runTestCase = async (code, languageId, input, expectedOutput) => {
   const token = await submitToJudge0(code, languageId, input, expectedOutput);
-  const result = await pollSubmission(token);
+  let result;
 
-  const decode = (v) => v ? Buffer.from(v, "base64").toString() : "";
-const stdout = decode(result.stdout);
-const stderr = decode(result.stderr);
-const compile = decode(result.compile_output);
-let actual = stdout || compile || stderr;
+  try {
+    result = await pollSubmission(token);
+  } catch (error) {
+    if (error?.code === "JUDGE_TIMEOUT" || error?.message === "Execution Timeout") {
+      result = createExecutionTimeoutResult();
+    } else {
+      throw error;
+    }
+  }
 
-
-  actual = normalizeOutput(actual);
+  const stdout = decodeBase64(result.stdout);
+  const stderr = decodeBase64(result.stderr);
+  const compile = decodeBase64(result.compile_output);
+  const message = decodeBase64(result.message);
+  const actual = normalizeOutput(stdout);
   const expected = normalizeOutput(expectedOutput || "");
-
-  const status = STATUS_MAP[result.status.id] || "Error";
+  const diagnosticsText = [compile, stderr, message].filter(Boolean).join("\n");
+  const status = classifyStatus(result, diagnosticsText);
   const passed = status === "Accepted" && actual === expected;
 
   // Format error object if there's an error
   let errorObj = null;
-  if (compile || stderr) {
-    const errorText = compile || stderr || "";
+  if (compile || stderr || message || isFatalJudgeStatus(status)) {
+    const errorText = compile || stderr || message || result?.status?.description || "Error occurred";
     errorObj = {
       message: errorText.split('\n')[0] || "Error occurred",
       full: errorText,
@@ -180,6 +269,11 @@ let actual = stdout || compile || stderr;
     actual,
     expected,
     error: errorObj,
+    statusId: result.status?.id || null,
+    stdout,
+    stderr,
+    compileOutput: compile,
+    message,
     executionTime: result.time ? parseFloat(result.time) * 1000 : 0,
     memoryUsed: result.memory || 0
   };
@@ -194,15 +288,18 @@ export const runSampleTests = async (code, sampleTests, language) => {
   if (!languageId) throw new Error("Unsupported Language");
 
   const results = [];
-  let allPassed = true;
+  let totalExecutionTime = 0;
+  let maxMemoryUsed = 0;
 
   for (let i = 0; i < sampleTests.length; i++) {
     const t = sampleTests[i];
     const r = await runTestCase(code, languageId, t.input, t.expectedOutput);
-
+    totalExecutionTime += r.executionTime;
+    maxMemoryUsed = Math.max(maxMemoryUsed, r.memoryUsed);
 
     results.push({
       testCase: i + 1,
+      status: r.status,
       passed: r.passed,
       input: r.input,  
       expected: r.expected,
@@ -210,13 +307,19 @@ export const runSampleTests = async (code, sampleTests, language) => {
       error: r.error
     });
 
-    if (!r.passed) allPassed = false;
+    if (isFatalJudgeStatus(r.status)) {
+      break;
+    }
   }
 
-return {
-  status: allPassed ? "Accepted" : "Wrong Answer",
-  results
-};
+  return {
+    status: buildAggregateStatus(results),
+    passed: results.filter((result) => result.passed).length,
+    total: sampleTests.length,
+    executionTime: totalExecutionTime,
+    memoryUsed: maxMemoryUsed,
+    results
+  };
 
 };
 
@@ -234,9 +337,6 @@ export const judgeSubmission = async (code, testCases, language) => {
 
   const results = [];
 
-  let hasCompileError = false;
-  let hasRuntimeError = false;
-
   for (let i = 0; i < testCases.length; i++) {
     const t = testCases[i];
     const r = await runTestCase(code, languageId, t.input, t.expectedOutput);
@@ -246,27 +346,22 @@ export const judgeSubmission = async (code, testCases, language) => {
 
     if (r.passed) passed++;
 
-    if (r.error) {
-      if (r.status === "Compilation Error") hasCompileError = true;
-      if (r.status === "Runtime Error") hasRuntimeError = true;
-    }
-
     results.push({
       testCase: i + 1,
+      status: r.status,
       passed: r.passed,
       input: r.input,
       expected: r.expected,
       actual: r.actual,
       error: r.error
     });
+
+    if (isFatalJudgeStatus(r.status)) {
+      break;
+    }
   }
 
-  // 🔥 REAL FINAL STATUS
-  let finalStatus;
-  if (hasCompileError) finalStatus = "Compilation Error";
-  else if (hasRuntimeError) finalStatus = "Runtime Error";
-  else if (passed === testCases.length) finalStatus = "Accepted";
-  else finalStatus = "Wrong Answer";
+  const finalStatus = buildAggregateStatus(results);
 
   return {
     status: finalStatus,

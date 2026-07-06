@@ -104,25 +104,25 @@ export default function CommentsSection({
       <div
         className={`${
           depth > 0 ? 'ml-8 mt-3' : ''
-        } border-l-2 border-gray-600 pl-4 py-3 hover:border-blue-500 transition`}
+        } border-l-2 border-border pl-4 py-3 transition hover:border-primary/60`}
       >
         <div className="flex items-start gap-3">
           <Avatar username={comment.userId?.username || 'User'} size="sm" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-semibold text-sm text-white">
+              <span className="text-sm font-semibold text-foreground">
                 {comment.userId?.username || 'Anonymous'}
               </span>
-              <span className="text-gray-400 text-xs">
+              <span className="text-xs text-muted-foreground">
                 {formatTimeAgo(comment.createdAt)}
               </span>
             </div>
-            <p className="text-gray-300 text-sm mb-2">{comment.content}</p>
+            <p className="mb-2 text-sm text-foreground/90">{comment.content}</p>
 
             {canReply && user && (
               <button
                 onClick={() => setShowReplyBox((prev) => !prev)}
-                className="text-blue-400 hover:text-blue-300 text-xs font-medium transition"
+                className="text-xs font-medium text-primary transition hover:text-primary/80"
               >
                 Reply
               </button>
@@ -137,13 +137,13 @@ export default function CommentsSection({
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Write a reply..."
-                className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[60px]"
+                className="input-surface min-h-[60px] flex-1 px-3 py-2 text-sm"
               />
               <div className="flex flex-col gap-2">
                 <button
                   onClick={handleReplySubmit}
                   disabled={!replyText.trim() || submittingReply}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm disabled:opacity-50 transition"
+                  className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground transition hover:brightness-110 disabled:opacity-50"
                 >
                   Reply
                 </button>
@@ -152,7 +152,7 @@ export default function CommentsSection({
                     setShowReplyBox(false);
                     setReplyText('');
                   }}
-                  className="text-gray-400 hover:text-gray-300 px-3 py-2 rounded-lg text-sm transition"
+                  className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-foreground"
                 >
                   Cancel
                 </button>
@@ -174,8 +174,8 @@ export default function CommentsSection({
   };
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+    <div className="surface-primary p-6">
+      <h2 className="mb-4 flex items-center gap-2 text-xl font-bold tracking-tight">
         <MessageSquare className="h-5 w-5" />
         Discussion
       </h2>
@@ -186,23 +186,23 @@ export default function CommentsSection({
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a comment..."
-            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+            className="input-surface min-h-[100px] w-full px-4 py-2"
           />
           <button
             onClick={handleCommentSubmit}
             disabled={submittingComment || !newComment.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50 transition"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-primary-foreground transition hover:brightness-110 disabled:opacity-50"
           >
             <Send className="h-4 w-4" />
             Post Comment
           </button>
         </div>
       ) : (
-        <div className="mb-4 p-4 bg-gray-700/50 border border-gray-600 rounded-lg">
-          <p className="text-gray-300 mb-3">Login to join the discussion</p>
+        <div className="mb-4 rounded-xl border border-border/70 bg-secondary/60 p-4">
+          <p className="mb-3 text-foreground/90">Login to join the discussion</p>
           <button
             onClick={() => onLoginRequired('comment')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition"
+            className="rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground transition hover:brightness-110"
           >
             Login to Comment
           </button>
@@ -211,7 +211,7 @@ export default function CommentsSection({
 
       <div className="space-y-4 mt-6">
         {comments.length === 0 ? (
-          <p className="text-gray-400 text-center py-4">
+          <p className="py-4 text-center text-muted-foreground">
             No comments yet. Be the first to comment!
           </p>
         ) : (

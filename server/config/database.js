@@ -4,8 +4,15 @@ export const connectDB = async () => {
   try {
     console.log('🔌 Attempting to connect to MongoDB...');
 
-    // If no MongoDB URI configured, skip connecting in non-production environments
-    if (!process.env.MONGODB_URI || process.env.MONGODB_URI.startsWith('REPLACE')) {
+    const mongoUri = process.env.MONGODB_URI;
+    const hasValidMongoUri = !!mongoUri && !mongoUri.startsWith('REPLACE');
+
+    // If no MongoDB URI configured, skip connecting only in development
+    if (!hasValidMongoUri) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('MONGODB_URI is required in production');
+      }
+
       console.warn('⚠️ No valid MONGODB_URI provided. Skipping DB connection (development mode).');
       return Promise.resolve();
     }
@@ -21,7 +28,7 @@ export const connectDB = async () => {
       bufferCommands: false,
     };
 
-    await mongoose.connect(process.env.MONGODB_URI, options);
+    await mongoose.connect(mongoUri, options);
 
     console.log('✅ Connected to MongoDB successfully');
     console.log('📊 Database:', mongoose.connection.db.databaseName);

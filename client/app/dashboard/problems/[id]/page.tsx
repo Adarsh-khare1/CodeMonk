@@ -16,10 +16,10 @@ interface Problem {
   title: string;
   description: string;
   difficulty: string;
-  category: string[];
+  topics: string[];
   starterCode: string;
   testCases: Array<{ input: string; expectedOutput: string; isPublic: boolean }>;
-  constraints: string;
+  constraints: string[];
 }
 
 interface Comment {
@@ -81,6 +81,7 @@ export default function ProblemDetail() {
     try {
       const response = await api.get(`/problems/${params.id}`);
       setProblem(response.data);
+      setCode(getStarterCode(language) || response.data.starterCode || '');
     } catch (error) {
       console.error('Error fetching problem:', error);
     }
@@ -141,35 +142,52 @@ export default function ProblemDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="app-shell py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Problem Description */}
           <div className="space-y-6">
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+            <div className="surface-primary p-6">
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{problem.title}</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{problem.title}</h1>
                 <span
                   className={`px-3 py-1 rounded-full text-sm font-medium ${
                     problem.difficulty === 'Easy'
-                      ? 'bg-green-500/20 text-green-400'
+                      ? 'bg-green-500/20 text-green-600 dark:text-green-400'
                       : problem.difficulty === 'Medium'
-                      ? 'bg-yellow-500/20 text-yellow-400'
-                      : 'bg-red-500/20 text-red-400'
+                      ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+                      : 'bg-red-500/20 text-red-600 dark:text-red-400'
                   }`}
                 >
                   {problem.difficulty}
                 </span>
               </div>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-gray-300 whitespace-pre-wrap mb-4">
+              <div className="max-w-none">
+                <p className="mb-4 whitespace-pre-wrap text-foreground/90">
                   {problem.description}
                 </p>
                 {problem.constraints && (
                   <div className="mt-4">
                     <h3 className="font-semibold mb-2">Constraints:</h3>
-                    <p className="text-gray-400 text-sm">{problem.constraints}</p>
+                    <ul className="ml-6 list-disc space-y-1 text-sm text-muted-foreground">
+                      {problem.constraints.map((constraint, index) => (
+                        <li key={index}>{constraint}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {problem.topics?.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="font-semibold mb-2">Topics:</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {problem.topics.map((topic) => (
+                        <span key={topic} className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
+                          {topic}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

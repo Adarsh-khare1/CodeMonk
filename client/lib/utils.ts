@@ -1,16 +1,46 @@
-export function formatTimeAgo(date: string | Date): string {
-  const now = new Date();
-  const then = new Date(date);
-  const seconds = Math.floor((now.getTime() - then.getTime()) / 1000);
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
 
-  if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
-  
-  return then.toLocaleDateString();
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
 }
 
-export function cn(...classes: (string | undefined | null | false)[]): string {
-  return classes.filter(Boolean).join(' ');
+export function formatTimeAgo(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+
+  if (Number.isNaN(diffMs)) {
+    return "";
+  }
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const week = 7 * day;
+
+  if (diffMs < minute) {
+    return "just now";
+  }
+
+  if (diffMs < hour) {
+    const minutes = Math.floor(diffMs / minute);
+    return `${minutes}m ago`;
+  }
+
+  if (diffMs < day) {
+    const hours = Math.floor(diffMs / hour);
+    return `${hours}h ago`;
+  }
+
+  if (diffMs < week) {
+    const days = Math.floor(diffMs / day);
+    return `${days}d ago`;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: now.getFullYear() === date.getFullYear() ? undefined : "numeric",
+  });
 }

@@ -82,14 +82,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="app-shell py-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <Link
             href="/dashboard/submissions"
-            className="text-base text-gray-300 hover:text-yellow-500 transition-colors"
+            className="text-base text-muted-foreground hover:text-primary transition-colors"
           >
             Submissions
           </Link>
@@ -99,7 +99,7 @@ export default function Dashboard() {
         <StreakCards current={analytics.streak.current} longest={analytics.streak.longest} />
 
         {/* Activity Heatmap */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-8">
+        <div className="surface-primary p-6 mb-8">
           <h2 className="text-xl font-bold mb-4">Activity Heatmap</h2>
           <div className="overflow-x-auto">
             <ActivityHeatmap activityByDate={analytics.activityByDate} />
@@ -108,7 +108,7 @@ export default function Dashboard() {
 
         {/* Category Distribution */}
         {categoryData.length > 0 && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-8">
+          <div className="surface-primary p-6 mb-8">
             <h2 className="text-xl font-bold mb-4">Problems Solved by Category</h2>
             <ResponsiveContainer width="100%" height={400}>
               <PieChart>
@@ -137,7 +137,7 @@ export default function Dashboard() {
         <StatsSummary totalSolved={analytics.totalSolved} totalSubmissions={analytics.totalSubmissions} />
 
         {/* External Platforms */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <div className="surface-primary p-6">
           <h2 className="text-xl font-bold mb-4">External Platforms</h2>
 
           {userProfile && (
@@ -170,7 +170,7 @@ export default function Dashboard() {
            !userProfile.externalProfiles?.leetcode?.username &&
            !userProfile.externalProfiles?.codeforces?.username &&
            !userProfile.externalProfiles?.codechef?.username && (
-            <div className="mt-6 text-center py-8 text-gray-400">
+            <div className="mt-6 py-8 text-center text-muted-foreground">
               <p>No external platforms connected yet.</p>
               <p className="text-sm mt-2">Connect your coding profiles to track your progress across platforms.</p>
             </div>

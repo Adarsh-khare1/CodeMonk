@@ -78,34 +78,34 @@ export default function DashboardSubmissionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="app-shell py-8">
         <div className="mb-6 flex items-center gap-4">
           <Link
             href="/dashboard"
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-muted-foreground transition-colors hover:text-foreground"
           >
             ← Dashboard
           </Link>
         </div>
-        <h1 className="text-3xl font-bold mb-8">Submissions</h1>
+        <h1 className="mb-8 text-3xl font-bold tracking-tight">Submissions</h1>
 
-        <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
+        <div className="surface-primary overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="px-6 py-4 font-semibold text-gray-200">Problem Title</th>
-                  <th className="px-6 py-4 font-semibold text-gray-200">Language</th>
-                  <th className="px-6 py-4 font-semibold text-gray-200">Status</th>
-                  <th className="px-6 py-4 font-semibold text-gray-200">Submitted At</th>
+                <tr className="border-b border-border/70">
+                  <th className="px-6 py-4 font-semibold text-foreground">Problem Title</th>
+                  <th className="px-6 py-4 font-semibold text-foreground">Language</th>
+                  <th className="px-6 py-4 font-semibold text-foreground">Status</th>
+                  <th className="px-6 py-4 font-semibold text-foreground">Submitted At</th>
                 </tr>
               </thead>
               <tbody>
                 {submissions.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
+                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
                       No submissions yet.
                     </td>
                   </tr>
@@ -114,12 +114,12 @@ export default function DashboardSubmissionsPage() {
                     <tr
                       key={sub.problemId}  
                       onClick={() => handleRowClick(sub)}
-                      className="border-b border-gray-700 hover:bg-gray-700/50 cursor-pointer transition-colors"
+                      className="cursor-pointer border-b border-border/60 transition-colors hover:bg-accent/50"
                     >
-                      <td className="px-6 py-4 text-white">{sub.title}</td>
-                      <td className="px-6 py-4 text-gray-300 capitalize">{sub.language}</td>
-                      <td className="px-6 py-4text-green-400">Accepted</td>
-                      <td className="px-6 py-4 text-gray-400">{formatDateTime(sub.lastAcceptedAt)}</td>
+                      <td className="px-6 py-4 text-foreground">{sub.title}</td>
+                      <td className="px-6 py-4 capitalize text-muted-foreground">{sub.language}</td>
+                      <td className="px-6 py-4 text-emerald-600 dark:text-emerald-400">Accepted</td>
+                      <td className="px-6 py-4 text-muted-foreground">{formatDateTime(sub.lastAcceptedAt)}</td>
                     </tr>
                   ))
                 )}

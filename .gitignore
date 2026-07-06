@@ -20,6 +20,7 @@ client/.vercel
 # Production
 client/build/
 server/dist/
+server/temp/
 
 # Misc
 .DS_Store

@@ -74,7 +74,7 @@ export default function PastSubmissions({ problemId, user, onSelectSubmission }:
 
   if (!user) {
     return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 text-sm text-gray-400">
+      <div className="surface-primary p-4 text-sm text-muted-foreground">
         Login to view past submissions
       </div>
     );
@@ -82,31 +82,31 @@ export default function PastSubmissions({ problemId, user, onSelectSubmission }:
 
   if (loading) {
     return (
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 flex justify-center">
-      <Loader />
-    </div>
+      <div className="surface-primary flex justify-center p-6">
+        <Loader />
+      </div>
     );
   }
 
   if (submissions.length === 0) {
     return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 text-sm text-gray-400">
+      <div className="surface-primary p-4 text-sm text-muted-foreground">
         No past submissions
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg">
-      <div className="px-4 py-3 border-b border-gray-700">
+    <div className="surface-primary overflow-hidden">
+      <div className="hairline-divider px-4 py-3">
         <h3 className="font-semibold text-sm">Past Submissions</h3>
       </div>
       <div className="max-h-96 overflow-y-auto">
         {submissions.map((sub) => (
           <div
             key={sub._id}
-            className={`border-b border-gray-700 p-3 cursor-pointer hover:bg-gray-750 transition ${
-              selectedId === sub._id ? 'bg-gray-750' : ''
+            className={`cursor-pointer border-b border-border/60 p-3 transition hover:bg-accent/60 ${
+              selectedId === sub._id ? 'bg-accent/70' : ''
             }`}
             onClick={() => {
               setSelectedId(sub._id);
@@ -118,21 +118,21 @@ export default function PastSubmissions({ problemId, user, onSelectSubmission }:
               <div className="flex items-center gap-2">
                 {getStatusIcon(sub.status)}
                 <span className={`text-xs font-medium ${
-                  sub.status === 'Accepted' ? 'text-green-400' : 'text-red-400'
+                  sub.status === 'Accepted' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
                 }`}>
                   {sub.status}
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-xs text-gray-400">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 {formatTime(sub.createdAt)}
               </div>
             </div>
-            <div className="text-xs text-gray-400 mb-1">
+            <div className="mb-1 text-xs text-muted-foreground">
               {sub.passed} / {sub.total} passed • {sub.language}
             </div>
             {expandedId === sub._id && (
-              <div className="mt-2 p-2 bg-gray-900 rounded text-xs font-mono text-gray-300 max-h-48 overflow-y-auto">
+              <div className="font-code mt-2 max-h-48 overflow-y-auto rounded-xl border border-border/60 bg-background/90 p-2 text-xs text-foreground">
                 <pre className="whitespace-pre-wrap break-words">{sub.code}</pre>
               </div>
             )}

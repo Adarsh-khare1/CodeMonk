@@ -3,16 +3,16 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "@/types/user";
+import api from "@/lib/api";
 
 // ---------------- CONTEXT TYPES ----------------
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 // ---------------- CONTEXT ----------------
@@ -25,26 +25,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ---------------- HYDRATE FROM LOCAL STORAGE ----------------
-  useEffect(() => {
-    try {
-      const storedToken = localStorage.getItem("token");
-      const storedUser = localStorage.getItem("user");
+  const fetchCurrentUser = async () => {
+    const { data } = await api.get("/auth/me");
+    const currentUser: User = {
+      _id: data.user.id,
+      username: data.user.username,
+      email: data.user.email,
+    };
 
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser) as User);
+    setUser(currentUser);
+    return currentUser;
+  };
+
+  // ---------------- HYDRATE FROM COOKIE SESSION ----------------
+  useEffect(() => {
+    const bootstrapAuth = async () => {
+      try {
+        await fetchCurrentUser();
+      } catch (err: any) {
+        if (err?.response?.status !== 401) {
+          console.error("Auth bootstrap failed:", err);
+        }
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Auth hydration failed:", err);
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    const handleAuthLogout = () => {
+      setUser(null);
+    };
+
+    bootstrapAuth();
+    window.addEventListener("auth:logout", handleAuthLogout);
+
+    return () => {
+      window.removeEventListener("auth:logout", handleAuthLogout);
+    };
   }, []);
 
   // ---------------- LOGIN ----------------
@@ -52,19 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const { data } = await api.post("/auth/login", { email, password });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Login failed");
-      }
-
-      // Must contain _id, username, email
       const user: User = {
         _id: data.user.id,
         username: data.user.username,
@@ -72,10 +80,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
 
       setUser(user);
-      setToken(data.token);
-
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("token", data.token);
     } catch (err) {
       console.error("Login error:", err);
       throw err;
@@ -89,17 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Signup failed");
-      }
+      const { data } = await api.post("/auth/signup", { username, email, password });
 
       const user: User = {
         _id: data.user.id,
@@ -108,10 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
 
       setUser(user);
-      setToken(data.token);
-
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("token", data.token);
     } catch (err) {
       console.error("Signup error:", err);
       throw err;
@@ -121,16 +111,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ---------------- LOGOUT ----------------
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+
     setUser(null);
-    setToken(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
     router.push("/");
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

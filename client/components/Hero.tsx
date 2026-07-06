@@ -38,7 +38,7 @@ export default function Hero() {
   }, [mounted]);
 
   return (
-    <section className="fixed min-h-screen w-full overflow-hidden text-white">
+    <section className="fixed min-h-screen w-full overflow-hidden text-foreground">
       
       {/* LOADER OVERLAY */}
       {!heroLoaded && (
@@ -47,8 +47,8 @@ export default function Hero() {
         </div>
       )}
 
-      {/* HARD BLACK BASE */}
-      <div className="absolute inset-0 bg-black z-0" />
+      {/* BASE */}
+      <div className="absolute inset-0 z-0 bg-background" />
 
       {/* VIDEO */}
       <video
@@ -74,15 +74,15 @@ export default function Hero() {
       </video>
 
       {/* OVERLAY */}
-      <div className="absolute inset-0 bg-black/30 z-20 pointer-events-none" />
+      <div className="absolute inset-0 z-20 pointer-events-none bg-background/50 dark:bg-background/60" />
 
       {/* CONTENT */}
-      <div className="relative z-30 flex min-h-screen flex-col justify-center max-w-xl px-8 pt-32">
+      <div className="relative z-30 flex min-h-screen max-w-xl flex-col justify-center px-8 pt-32">
         <h2 className="text-[4rem] font-semibold leading-[1.2]">
           Master Coding <br /> One Problem at a Time
         </h2>
 
-        <p className="mt-6 text-gray-400 max-w-md">
+        <p className="mt-6 max-w-md text-muted-foreground">
           Practice DSA, algorithms, and real interview problems.
         </p>
 
@@ -92,7 +92,7 @@ export default function Hero() {
             videoRef.current.muted = soundOn;
             setSoundOn(!soundOn);
           }}
-          className="mt-6 px-4 py-2 bg-white/20 rounded hover:bg-white/30 transition"
+          className="mt-6 w-fit rounded-xl border border-border/70 bg-card/70 px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-accent"
         >
           {soundOn ? "Mute Sound" : "Play Sound"}
         </button>

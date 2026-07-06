@@ -8,7 +8,7 @@ const submissionHistorySchema = new mongoose.Schema(
     language: { type: String, enum: ['javascript', 'python', 'cpp', 'c', 'java'], default: 'javascript' },
     status: {
       type: String,
-      enum: ['Accepted', 'Wrong Answer', 'Time Limit Exceeded', 'Runtime Error', 'Compilation Error'],
+      enum: ['Accepted', 'Wrong Answer', 'Time Limit Exceeded', 'Memory Limit Exceeded', 'Runtime Error', 'Compilation Error', 'Internal Error', 'Execution Error'],
       required: true,
     },
     passed: { type: Number, default: 0 },

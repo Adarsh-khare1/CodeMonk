@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002/api';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 console.log('🔗 API configuration:', {
   baseURL: API_URL,
@@ -11,6 +11,7 @@ console.log('🔗 API configuration:', {
 const api = axios.create({
   baseURL: API_URL,
   timeout: 30000, // 30 seconds
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -19,7 +20,6 @@ const api = axios.create({
 // Request interceptor with logging
 api.interceptors.request.use(
   (config) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const startTime = Date.now();
 
     // Add request metadata
@@ -28,14 +28,10 @@ api.interceptors.request.use(
     console.log('📤 API Request:', {
       method: config.method?.toUpperCase(),
       url: config.url,
-      hasToken: !!token,
+      withCredentials: config.withCredentials ?? true,
       dataSize: config.data ? JSON.stringify(config.data).length : 0,
       timestamp: new Date().toISOString()
     });
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
 
     return config;
   },
@@ -89,11 +85,9 @@ api.interceptors.response.use(
 
     // Handle specific error types
     if (error.response?.status === 401) {
-      console.warn('🔐 Unauthorized - clearing token');
+      console.warn('🔐 Unauthorized - clearing auth state');
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        // Optionally redirect to login
-        // window.location.href = '/login';
+        window.dispatchEvent(new Event('auth:logout'));
       }
     } else if (error.response?.status === 403) {
       console.warn('🚫 Forbidden access');

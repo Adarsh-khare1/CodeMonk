@@ -101,16 +101,16 @@ export default function Analytics() {
   if (!authUser || !analytics) return null;
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-8">Analytics Dashboard</h1>
+      <div className="app-shell py-8">
+        <h1 className="mb-8 text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
 
         {/* Streak Stats */}
         <StreakCards current={analytics.streak.current} longest={analytics.streak.longest} />
 
         {/* Activity Heatmap */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-8">
+        <div className="surface-primary mb-8 p-6">
           <h2 className="text-xl font-bold mb-4">Activity Heatmap</h2>
           <div className="overflow-x-auto">
             <ActivityHeatmap activityByDate={analytics.activityByDate} />
@@ -119,7 +119,7 @@ export default function Analytics() {
 
         {/* Category Distribution */}
         {categoryData.length > 0 && (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-8">
+          <div className="surface-primary mb-8 p-6">
             <h2 className="text-xl font-bold mb-4">Problems Solved by Category</h2>
             <ResponsiveContainer width="100%" height={400}>
               <PieChart>
@@ -148,32 +148,32 @@ export default function Analytics() {
         <StatsSummary totalSolved={analytics.totalSolved} totalSubmissions={analytics.totalSubmissions} />
 
         {/* External Stats */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <div className="surface-primary p-6">
           <h2 className="text-xl font-bold mb-4">External Platform Stats</h2>
 
           {/* Display Current Stats */}
           {userProfile && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gray-700 rounded-lg p-4">
+              <div className="rounded-2xl border border-border/70 bg-secondary/60 p-4">
                 <h3 className="font-semibold mb-2">LeetCode</h3>
                 <p>Solved: {userProfile.externalStats.leetcode.totalSolved}</p>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   {userProfile.externalStats.leetcode.easy}E /{' '}
                   {userProfile.externalStats.leetcode.medium}M /{' '}
                   {userProfile.externalStats.leetcode.hard}H
                 </p>
               </div>
-              <div className="bg-gray-700 rounded-lg p-4">
+              <div className="rounded-2xl border border-border/70 bg-secondary/60 p-4">
                 <h3 className="font-semibold mb-2">Codeforces</h3>
                 <p>Solved: {userProfile.externalStats.codeforces.totalSolved}</p>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Rating: {userProfile.externalStats.codeforces.rating}
                 </p>
               </div>
-              <div className="bg-gray-700 rounded-lg p-4">
+              <div className="rounded-2xl border border-border/70 bg-secondary/60 p-4">
                 <h3 className="font-semibold mb-2">CodeChef</h3>
                 <p>Solved: {userProfile.externalStats.codechef.totalSolved}</p>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Rating: {userProfile.externalStats.codechef.rating}
                 </p>
               </div>
@@ -181,7 +181,7 @@ export default function Analytics() {
           )}
 
           {/* Update Stats Form */}
-          <div className="border-t border-gray-700 pt-6">
+          <div className="border-t border-border/70 pt-6">
             <h3 className="font-semibold mb-4">Update Stats</h3>
             <div className="space-y-4">
               <div>
@@ -191,7 +191,7 @@ export default function Analytics() {
                   onChange={(e) =>
                     setExternalStats({ ...externalStats, platform: e.target.value })
                   }
-                  className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input-surface px-4 py-2"
                 >
                   <option value="leetcode">LeetCode</option>
                   <option value="codeforces">Codeforces</option>
@@ -211,7 +211,7 @@ export default function Analytics() {
                           stats: { ...externalStats.stats, totalSolved: parseInt(e.target.value) || 0 },
                         })
                       }
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                      className="input-surface w-full px-4 py-2"
                     />
                   </div>
                   <div>
@@ -225,7 +225,7 @@ export default function Analytics() {
                           stats: { ...externalStats.stats, easy: parseInt(e.target.value) || 0 },
                         })
                       }
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                      className="input-surface w-full px-4 py-2"
                     />
                   </div>
                   <div>
@@ -239,7 +239,7 @@ export default function Analytics() {
                           stats: { ...externalStats.stats, medium: parseInt(e.target.value) || 0 },
                         })
                       }
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                      className="input-surface w-full px-4 py-2"
                     />
                   </div>
                   <div>
@@ -253,7 +253,7 @@ export default function Analytics() {
                           stats: { ...externalStats.stats, hard: parseInt(e.target.value) || 0 },
                         })
                       }
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                      className="input-surface w-full px-4 py-2"
                     />
                   </div>
                 </div>
@@ -270,7 +270,7 @@ export default function Analytics() {
                           stats: { ...externalStats.stats, totalSolved: parseInt(e.target.value) || 0 },
                         })
                       }
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                      className="input-surface w-full px-4 py-2"
                     />
                   </div>
                   <div>
@@ -284,14 +284,14 @@ export default function Analytics() {
                           stats: { ...externalStats.stats, rating: parseInt(e.target.value) || 0 },
                         })
                       }
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"
+                      className="input-surface w-full px-4 py-2"
                     />
                   </div>
                 </div>
               )}
               <button
                 onClick={handleUpdateExternalStats}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+                className="rounded-xl bg-primary px-6 py-2 text-primary-foreground transition hover:brightness-110"
               >
                 Update Stats
               </button>

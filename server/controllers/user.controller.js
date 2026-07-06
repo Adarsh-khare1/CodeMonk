@@ -33,34 +33,59 @@ export const getAnalytics = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get solved problem IDs
-    const solvedIds = user.solvedProblems.map(p => p.problemId);
+    const totalSubmissions = await SubmissionHistory.countDocuments({ userId });
 
-    const solvedProblems = await Problem.find({
-      _id: { $in: solvedIds },
+    const solvedIds = await SubmissionHistory.distinct('problemId', {
+      userId,
+      status: 'Accepted',
     });
 
-    // Build topic distribution (not category)
-    const topicCount = {};
+    const topicDistributionRows = solvedIds.length > 0
+      ? await Problem.aggregate([
+          {
+            $match: {
+              _id: { $in: solvedIds },
+              isDeleted: { $ne: true },
+            },
+          },
+          {
+            $unwind: {
+              path: '$topics',
+              preserveNullAndEmptyArrays: false,
+            },
+          },
+          {
+            $group: {
+              _id: '$topics',
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { count: -1, _id: 1 } },
+        ])
+      : [];
 
-    solvedProblems.forEach(problem => {
-      if (Array.isArray(problem.topics)) {
-        problem.topics.forEach(topic => {
-          topicCount[topic] = (topicCount[topic] || 0) + 1;
-        });
-      }
-    });
+    const topicCount = topicDistributionRows.reduce((acc, row) => {
+      acc[row._id] = row.count;
+      return acc;
+    }, {});
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 365);
+
+    const activityByDate = (user.activityByDate || [])
+      .filter((entry) => entry?.date && new Date(entry.date) >= cutoffDate)
+      .sort((a, b) => a.date.localeCompare(b.date));
 
     res.json({
       streak: {
-  current: user.streak?.current || 0,
-  longest: user.streak?.longest || 0,
-},
-
-      activityByDate: user.activityByDate || [],
+        current: user.streak?.current || 0,
+        longest: user.streak?.longest || 0,
+      },
+      activityByDate,
       topicDistribution: topicCount,
-      totalSolved: user.solvedProblems.length,
-      totalSubmissions: user.submissions.length,
+      categoryDistribution: topicCount,
+      totalSolved: solvedIds.length,
+      totalSubmissions,
     });
   } catch (error) {
     console.error('ANALYTICS ERROR:', error);

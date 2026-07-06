@@ -7,7 +7,8 @@ interface ErrorObject {
 }
 
 interface TestCaseResult {
-  testCase?: number;
+  testCase?: number | string;
+  status?: string;
   passed: boolean;
   input?: string;
   expectedOutput?: string;
@@ -20,6 +21,8 @@ interface TestResults {
   total: number;
   results: TestCaseResult[];
   status?: string;
+  executionTime?: number;
+  memoryUsed?: number;
 }
 
 interface Submission {
@@ -28,6 +31,8 @@ interface Submission {
   stderr?: string;
   compile_output?: string;
   aiFeedback?: string;
+  executionTime?: number;
+  memoryUsed?: number;
 }
 
 interface SubmissionResultType {
@@ -45,7 +50,7 @@ export default function SubmissionResult({ result }: SubmissionResultProps) {
 
   if (result.error) {
     return (
-      <div className="bg-gray-800 p-4 rounded text-red-400">
+      <div className="surface-primary border-red-500/30 bg-red-500/10 p-4 text-red-600 dark:text-red-300">
         {result.error}
       </div>
     );
@@ -69,30 +74,41 @@ const getErrorLine = (error: string | ErrorObject | null | undefined): number | 
 };
 
 const compileError =
-  result.testResults?.status === "Compilation Error"
+  ["Compilation Error", "Runtime Error", "Time Limit Exceeded", "Memory Limit Exceeded", "Internal Error", "Execution Error"].includes(result.testResults?.status || "")
     ? result.submission?.compile_output || getErrorMessage(result.testResults?.results[0]?.error)
     : null;
 
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4">Submission Result</h2>
+    <div className="surface-primary p-6">
+      <h2 className="mb-4 text-xl font-bold tracking-tight">Submission Result</h2>
 
       {status && (
         <div
-          className={`text-lg font-semibold mb-4 ${
-            status === "Accepted" ? "text-green-400" : "text-red-400"
+          className={`mb-4 text-lg font-semibold ${
+            status === "Accepted" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
           }`}
         >
           {status}
         </div>
       )}
 
+      {(result.testResults?.executionTime !== undefined || result.testResults?.memoryUsed !== undefined) && (
+        <div className="mb-4 flex flex-wrap gap-3 text-sm text-muted-foreground">
+          <div className="rounded-xl border border-border/60 bg-secondary/70 px-3 py-2">
+            Time: {Math.round(result.testResults?.executionTime || 0)} ms
+          </div>
+          <div className="rounded-xl border border-border/60 bg-secondary/70 px-3 py-2">
+            Memory: {result.testResults?.memoryUsed || 0} KB
+          </div>
+        </div>
+      )}
+
       {/* GLOBAL COMPILATION ERROR */}
       {compileError && (
-        <div className="mb-4 bg-red-900/30 border border-red-700 rounded p-3 text-red-300 text-sm">
+        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300">
           <b>Compilation / Runtime Error:</b>
-          <div className="mt-2 max-h-64 overflow-y-auto break-words whitespace-pre-wrap font-mono">
+          <div className="font-code mt-2 max-h-64 overflow-y-auto break-words whitespace-pre-wrap">
             {compileError}
           </div>
         </div>
@@ -101,7 +117,7 @@ const compileError =
       {/* TEST CASES */}
       {result.testResults && (
         <>
-          <div className="mb-2 text-gray-300">
+          <div className="mb-2 text-muted-foreground">
             Passed: {result.testResults.passed} / {result.testResults.total}
           </div>
 
@@ -110,49 +126,49 @@ const compileError =
               const testCaseNum = r.testCase !== undefined ? r.testCase : i + 1;
               const errorMsg = getErrorMessage(r.error);
               const errorLine = getErrorLine(r.error);
-              const isTLE = result.testResults?.status === "Time Limit Exceeded";
+              const testStatus = r.status || (r.passed ? "Accepted" : result.testResults?.status || "Failed");
               
               return (
                 <div
                   key={i}
-                  className={`rounded p-3 text-sm border ${
+                  className={`rounded-xl border p-3 text-sm ${
                     r.passed
-                      ? "bg-green-900/20 border-green-700"
-                      : "bg-red-900/20 border-red-700"
+                      ? "border-emerald-500/30 bg-emerald-500/10"
+                      : "border-red-500/30 bg-red-500/10"
                   }`}
                 >
-                  <div className="font-semibold mb-2">
-                    Test Case {testCaseNum}: {r.passed ? "Passed" : (isTLE ? "Time Limit Exceeded" : "Failed")}
+                  <div className="mb-2 font-semibold">
+                    Test Case {testCaseNum}: {r.passed ? "Passed" : testStatus}
                   </div>
 
                   {errorMsg && (
-                    <div className="mb-2 p-2 bg-red-900/30 border border-red-700 rounded text-red-300 text-xs">
+                    <div className="mb-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-700 dark:text-red-300">
                       <div className="font-semibold">Error:</div>
                       <div className="whitespace-pre-wrap break-words">{errorMsg}</div>
                       {errorLine !== null && (
-                        <div className="mt-1 text-red-400">Line: {errorLine}</div>
+                        <div className="mt-1 text-red-600 dark:text-red-400">Line: {errorLine}</div>
                       )}
                     </div>
                   )}
 
-                  <div className="grid grid-cols-3 gap-4 text-xs font-mono text-gray-200">
+                  <div className="font-code grid grid-cols-1 gap-4 text-xs text-foreground md:grid-cols-3">
                     <div>
-                      <div className="text-gray-400 mb-1">Input</div>
-                      <div className="max-h-32 overflow-y-auto break-words whitespace-pre-wrap bg-gray-900/50 p-2 rounded">
+                      <div className="mb-1 text-muted-foreground">Input</div>
+                      <div className="code-surface max-h-32 overflow-y-auto break-words whitespace-pre-wrap p-2">
                         {r.input || ""}
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-gray-400 mb-1">Expected</div>
-                      <div className="max-h-32 overflow-y-auto break-words whitespace-pre-wrap bg-gray-900/50 p-2 rounded">
+                      <div className="mb-1 text-muted-foreground">Expected</div>
+                      <div className="code-surface max-h-32 overflow-y-auto break-words whitespace-pre-wrap p-2">
                         {r.expectedOutput || ""}
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-gray-400 mb-1">Your Output</div>
-                      <div className="max-h-32 overflow-y-auto break-words whitespace-pre-wrap bg-gray-900/50 p-2 rounded">
+                      <div className="mb-1 text-muted-foreground">Your Output</div>
+                      <div className="code-surface max-h-32 overflow-y-auto break-words whitespace-pre-wrap p-2">
                         {r.actualOutput || ""}
                       </div>
                     </div>

@@ -25,33 +25,33 @@ export default function PlatformCard({
   const isConnected = !!profile?.username;
 
   const renderProfileDetails = () => {
-    if (!isConnected) return <p className="text-gray-400 text-sm">Not connected</p>;
+    if (!isConnected) return <p className="text-sm text-muted-foreground">Not connected</p>;
 
     switch (platform) {
       case 'leetcode':
         return (
           <>
-            <p className="text-sm text-gray-300 mb-2">@{profile.username}</p>
+            <p className="mb-2 text-sm text-muted-foreground">@{profile.username}</p>
             <p className="text-lg font-bold">{profile.solved} Solved</p>
             {profile.rating && profile.rating > 0 && (
-              <p className="text-sm text-gray-400">Rating: {profile.rating}</p>
+              <p className="text-sm text-muted-foreground">Rating: {profile.rating}</p>
             )}
           </>
         );
       case 'codeforces':
         return (
           <>
-            <p className="text-sm text-gray-300 mb-2">@{profile.username}</p>
+            <p className="mb-2 text-sm text-muted-foreground">@{profile.username}</p>
             <p className="text-lg font-bold">Rating: {profile.rating}</p>
             {profile.maxRating && profile.maxRating > 0 && (
-              <p className="text-sm text-gray-400">Max: {profile.maxRating}</p>
+              <p className="text-sm text-muted-foreground">Max: {profile.maxRating}</p>
             )}
           </>
         );
       case 'codechef':
         return (
           <>
-            <p className="text-sm text-gray-300 mb-2">@{profile.username}</p>
+            <p className="mb-2 text-sm text-muted-foreground">@{profile.username}</p>
             <p className="text-lg font-bold">Rating: {profile.rating}</p>
           </>
         );
@@ -61,7 +61,7 @@ export default function PlatformCard({
   };
 
   return (
-    <div className="bg-gray-700 rounded-lg p-4">
+    <div className="surface-secondary p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold capitalize">{platform}</h3>
         <div className="flex gap-2">
@@ -69,14 +69,14 @@ export default function PlatformCard({
             <>
               <button
                 onClick={() => onEdit(platform)}
-                className="text-gray-400 hover:text-blue-400 transition"
+                className="text-muted-foreground hover:text-primary transition"
                 title="Edit"
               >
                 <Edit2 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => onRemove(platform)}
-                className="text-gray-400 hover:text-red-400 transition"
+                className="text-muted-foreground hover:text-red-500 transition"
                 title="Remove"
               >
                 <Trash2 className="h-4 w-4" />
@@ -85,7 +85,7 @@ export default function PlatformCard({
           ) : (
             <button
               onClick={() => onConnect(platform)}
-              className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1"
+              className="flex items-center gap-1 text-sm text-primary hover:text-primary/80"
             >
               <Plus className="h-4 w-4" />
               Connect

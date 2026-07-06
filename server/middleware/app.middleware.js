@@ -1,12 +1,34 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
 export const setupMiddleware = (app) => {
   try {
+    const configuredOrigins = (
+      process.env.CORS_ORIGIN ||
+      process.env.CLIENT_URL ||
+      ''
+    )
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+
+    const allowedOrigins = configuredOrigins.length > 0
+      ? configuredOrigins
+      : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+
     // CORS middleware
     app.use(cors({
-      origin: process.env.CLIENT_URL || 'http://localhost:3000',
-      credentials: true
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
     }));
     console.log('✅ CORS middleware configured');
 
@@ -32,6 +54,9 @@ export const setupMiddleware = (app) => {
 
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
     console.log('✅ URL-encoded parsing middleware configured');
+
+    app.use(cookieParser());
+    console.log('✅ Cookie parser middleware configured');
 
     // Request logging middleware
     app.use((req, res, next) => {

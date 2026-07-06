@@ -29,7 +29,7 @@ export default function Home() {
   if (user) return null;
 
   return (
-    <div className="relative min-h-screen bg-black/30">
+    <div className="relative min-h-screen">
       <Navbar />
       <Hero />
     </div>

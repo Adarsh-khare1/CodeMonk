@@ -5,6 +5,50 @@ import SubmissionHistory from "../models/SubmissionHistory.model.js";
 import User from "../models/User.model.js";
 import Problem from "../models/Problem.model.js";
 
+const resolveProblem = async (identifier) => {
+  return Problem.findOne({
+    isDeleted: { $ne: true },
+    $or: [
+      { slug: identifier },
+      ...(mongoose.Types.ObjectId.isValid(identifier) ? [{ _id: identifier }] : []),
+    ],
+  });
+};
+
+const toStructuredResponse = (judgeResult) => ({
+  submission: {
+    status: judgeResult.status,
+    executionTime: judgeResult.executionTime || 0,
+    memoryUsed: judgeResult.memoryUsed || 0,
+    compile_output: judgeResult.results?.find((result) => result.error)?.error?.full || "",
+  },
+  testResults: {
+    passed: judgeResult.passed,
+    total: judgeResult.total,
+    status: judgeResult.status,
+    executionTime: judgeResult.executionTime || 0,
+    memoryUsed: judgeResult.memoryUsed || 0,
+    results: judgeResult.results.map((result, index) => ({
+      testCase: result.testCase ?? index + 1,
+      status: result.status,
+      input: result.input || "",
+      expectedOutput: result.expected || "",
+      actualOutput: result.actual || "",
+      passed: result.passed,
+      error: result.error || null,
+    })),
+  },
+});
+
+const isJudgeUnavailableError = (error) => {
+  return (
+    error?.code === "ECONNREFUSED" ||
+    error?.code === "ENOTFOUND" ||
+    error?.code === "ETIMEDOUT" ||
+    error?.type === "system"
+  );
+};
+
 
 /* =========================================
    Run code without saving (for "Run" button)
@@ -23,7 +67,7 @@ export const runCode = async (req, res) => {
     }
 
     // 1️⃣ Fetch problem from DB
-    const problem = await Problem.findById(problemId);
+    const problem = await resolveProblem(problemId);
     if (!problem) {
       return res.status(404).json({ error: "Problem not found" });
     }
@@ -41,33 +85,18 @@ export const runCode = async (req, res) => {
     // 3️⃣ Run on Judge0
     const result = await runSampleTests(code, sampleTests, language);
 
-    // 4️⃣ Format response for UI
-    const formattedResult = {
-      submission: {
-        stdout: "",
-        stderr: "",
-        compile_output: "",
-      },
-      testResults: {
-        passed: result.results.filter(r => r.passed).length,
-        total: result.results.length,
-        status: result.status,
-        results: result.results.map((r, index) => ({
-          testCase: index + 1,
-          input: r.input || "",
-          expectedOutput: r.expected || "",
-          actualOutput: r.actual || "",
-          passed: r.passed,
-          error: r.error || null,
-        }))
-      }
-    };
-
-    res.json(formattedResult);
+    res.json(toStructuredResponse(result));
 
   } catch (err) {
     console.error("runCode error:", err);
-    res.status(500).json({ error: err.message });
+    if (isJudgeUnavailableError(err)) {
+      return res.status(503).json({
+        error: "Judge0 service is unavailable",
+        details: "Start your Judge0 service or set JUDGE0_API_URL/JUDGE0_URL to a reachable Judge0 endpoint.",
+      });
+    }
+
+    res.status(500).json({ error: err.message || "Failed to execute code" });
   }
 };
 
@@ -84,7 +113,7 @@ export const submitSolution = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const problem = await Problem.findById(problemId);
+    const problem = await resolveProblem(problemId);
     if (!problem) return res.status(404).json({ error: "Problem not found" });
 
     const sampleTests = problem.sampleTestCases.map(tc => ({
@@ -108,12 +137,7 @@ export const submitSolution = async (req, res) => {
     let finalResult = null;   // 👈 what UI + DB will use
 
     if (sampleResult.status !== "Accepted") {
-      finalResult = {
-        status: "Wrong Answer",
-        results: sampleResult.results,
-        passed: sampleResult.results.filter(r => r.passed).length,
-        total: sampleResult.results.length
-      };
+      finalResult = sampleResult;
     } else {
       // ================================
       // RUN HIDDEN
@@ -121,30 +145,35 @@ export const submitSolution = async (req, res) => {
       hiddenResult = await judgeSubmission(code, hiddenTests, language);
 
       if (hiddenResult.status !== "Accepted") {
-        const failed = hiddenResult.results.find(r => !r.passed);
+        const failed = hiddenResult.results.find(r => !r.passed) || hiddenResult.results[0];
 
         finalResult = {
-          status: "Wrong Answer",
+          status: hiddenResult.status,
           results: [
             {
               testCase: -1, // 👈 store as number for MongoDB
+              status: hiddenResult.status,
               label: "Hidden", // 👈 keep for UI
-              input: failed.input,
-              expected: failed.expected,
-              actual: failed.actual,
+              input: "",
+              expected: "",
+              actual: "",
               passed: false,
-              error: failed.error
+              error: failed?.error || null
             }
           ],
           passed: sampleTests.length + hiddenResult.passed,
-          total: sampleTests.length + hiddenTests.length
+          total: sampleTests.length + hiddenTests.length,
+          executionTime: (sampleResult.executionTime || 0) + (hiddenResult.executionTime || 0),
+          memoryUsed: Math.max(sampleResult.memoryUsed || 0, hiddenResult.memoryUsed || 0),
         };
       } else {
         finalResult = {
           status: "Accepted",
           results: [],
           passed: sampleTests.length + hiddenTests.length,
-          total: sampleTests.length + hiddenTests.length
+          total: sampleTests.length + hiddenTests.length,
+          executionTime: (sampleResult.executionTime || 0) + (hiddenResult.executionTime || 0),
+          memoryUsed: Math.max(sampleResult.memoryUsed || 0, hiddenResult.memoryUsed || 0),
         };
       }
     }
@@ -152,12 +181,16 @@ export const submitSolution = async (req, res) => {
     // ================================
     // SAVE SUBMISSION ✅
     // ================================
+    const resolvedProblemId = problem._id;
+
     const submission = await Submission.create({
       userId,
-      problemId,
+      problemId: resolvedProblemId,
       code,
       language,
       status: finalResult.status,
+      executionTime: finalResult.executionTime || 0,
+      memoryUsed: finalResult.memoryUsed || 0,
       results: finalResult.results.map((r, i) => ({
         testCase: typeof r.testCase === "number" ? r.testCase : i + 1,
 
@@ -171,7 +204,7 @@ export const submitSolution = async (req, res) => {
 
     await SubmissionHistory.create({
       userId,
-      problemId,
+      problemId: resolvedProblemId,
       code,
       language,
       status: finalResult.status,
@@ -184,7 +217,10 @@ export const submitSolution = async (req, res) => {
     // ================================
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select("solvedProblems submissions activityByDate streak");
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
     user.submissions.push({ submissionId: submission._id, date: today });
 
@@ -194,11 +230,11 @@ export const submitSolution = async (req, res) => {
 
     if (finalResult.status === "Accepted") {
       const alreadySolved = user.solvedProblems.some(
-        p => p.problemId.toString() === problemId.toString()
+        p => p.problemId.toString() === resolvedProblemId.toString()
       );
 
       if (!alreadySolved) {
-        user.solvedProblems.push({ problemId, solvedAt: today });
+        user.solvedProblems.push({ problemId: resolvedProblemId, solvedAt: today });
       }
 
       const last = user.streak.lastSolvedDate
@@ -220,32 +256,56 @@ const diff = (todayDate - lastDate) / 86400000;
       user.streak.longest = Math.max(user.streak.longest, user.streak.current);
     }
 
-    await user.save();
+    await User.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          solvedProblems: user.solvedProblems,
+          submissions: user.submissions,
+          activityByDate: user.activityByDate,
+          streak: user.streak,
+        },
+      }
+    );
 
     // ================================
     // SEND UI RESPONSE (unchanged)
     // ================================
     return res.json({
-      submission: {},
+      submission: {
+        status: finalResult.status,
+        executionTime: finalResult.executionTime || 0,
+        memoryUsed: finalResult.memoryUsed || 0,
+        compile_output: finalResult.results?.find((result) => result.error)?.error?.full || "",
+      },
       testResults: {
         passed: finalResult.passed,
         total: finalResult.total,
         status: finalResult.status,
+        executionTime: finalResult.executionTime || 0,
+        memoryUsed: finalResult.memoryUsed || 0,
         results: finalResult.results.map(r => ({
-  testCase: r.testCase === -1 ? "Hidden" : r.testCase,
-  input: r.input,
-  expectedOutput: r.expected,
-  actualOutput: r.actual,
-  passed: r.passed,
-  error: r.error
-}))
-
+          testCase: r.testCase === -1 ? "Hidden" : r.testCase,
+          status: r.status || finalResult.status,
+          input: r.input,
+          expectedOutput: r.expected,
+          actualOutput: r.actual,
+          passed: r.passed,
+          error: r.error
+        }))
       }
     });
 
   } catch (err) {
     console.error("submitSolution error:", err);
-    res.status(500).json({ error: err.message });
+    if (isJudgeUnavailableError(err)) {
+      return res.status(503).json({
+        error: "Judge0 service is unavailable",
+        details: "Start your Judge0 service or set JUDGE0_API_URL/JUDGE0_URL to a reachable Judge0 endpoint.",
+      });
+    }
+
+    res.status(500).json({ error: err.message || "Submission failed" });
   }
 };
 

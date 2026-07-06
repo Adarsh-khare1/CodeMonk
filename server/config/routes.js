@@ -4,6 +4,7 @@ import submissionRoutes from '../routes/submission.routes.js';
 import commentRoutes from '../routes/comment.routes.js';
 import userRoutes from '../routes/user.routes.js';
 import dashboardRoutes from '../routes/dashboard.routes.js';
+import aiRoutes from '../routes/ai.routes.js';
 
 
 export const setupRoutes = (app) => {
@@ -39,10 +40,10 @@ export const setupRoutes = (app) => {
       next();
     }, dashboardRoutes);
 
-    // app.use('/api/chatbot', (req, res, next) => {
-    //   console.log('🤖 Chatbot route accessed:', req.method, req.url);
-    //   next();
-    // }, chatbotRoutes);
+    app.use('/api/ai', (req, res, next) => {
+      console.log('🤖 AI route accessed:', req.method, req.url);
+      next();
+    }, aiRoutes);
 
     // Health check with detailed logging
     app.get('/api/health', (req, res) => {

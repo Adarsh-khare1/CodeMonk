@@ -4,13 +4,17 @@ import User from '../models/User.model.js';
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
+    const cookieToken = req.cookies?.auth_token;
+
+    if (!authHeader && !cookieToken) {
       return res.status(401).json({ message: 'No token provided' });
     }
 
-    const token = authHeader.startsWith('Bearer ')
-      ? authHeader.split(' ')[1]
-      : authHeader;
+    const token = authHeader
+      ? (authHeader.startsWith('Bearer ')
+          ? authHeader.split(' ')[1]
+          : authHeader)
+      : cookieToken;
 
     if (!token) {
       return res.status(401).json({ message: 'No token provided' });

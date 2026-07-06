@@ -62,8 +62,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 }
 
 const DefaultErrorFallback: React.FC<{ error: Error; retry: () => void }> = ({ error, retry }) => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+  <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="surface-primary w-full max-w-md p-6">
       <div className="flex items-center mb-4">
         <div className="flex-shrink-0">
           <svg className="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -71,8 +71,8 @@ const DefaultErrorFallback: React.FC<{ error: Error; retry: () => void }> = ({ e
           </svg>
         </div>
         <div className="ml-3">
-          <h3 className="text-lg font-medium text-gray-900">Something went wrong</h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <h3 className="text-lg font-medium text-foreground">Something went wrong</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             {process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'}
           </p>
         </div>
@@ -81,13 +81,13 @@ const DefaultErrorFallback: React.FC<{ error: Error; retry: () => void }> = ({ e
       <div className="flex space-x-3">
         <button
           onClick={retry}
-          className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
         >
           Try Again
         </button>
         <button
           onClick={() => window.location.reload()}
-          className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          className="flex-1 rounded-md border border-border/70 bg-secondary/70 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
         >
           Reload Page
         </button>
@@ -95,10 +95,10 @@ const DefaultErrorFallback: React.FC<{ error: Error; retry: () => void }> = ({ e
 
       {process.env.NODE_ENV === 'development' && (
         <details className="mt-4">
-          <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
+          <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
             Error Details (Development)
           </summary>
-          <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
+          <pre className="mt-2 max-h-40 overflow-auto rounded bg-secondary/70 p-2 text-xs text-foreground">
             {error.stack}
           </pre>
         </details>

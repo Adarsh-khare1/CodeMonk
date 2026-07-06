@@ -75,20 +75,20 @@ export default function ExternalProfileModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg shadow-2xl max-w-md w-full border border-gray-700 relative">
+    <div className="overlay-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="surface-primary relative w-full max-w-md shadow-2xl">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white transition"
+          className="absolute right-4 top-4 text-muted-foreground transition hover:text-foreground"
         >
           <X className="h-5 w-5" />
         </button>
 
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-2">
+          <h2 className="mb-2 text-2xl font-bold tracking-tight">
             {existingProfile?.username ? 'Edit' : 'Connect'} {platformNames[platform]}
           </h2>
-          <p className="text-gray-400 text-sm mb-6">
+          <p className="mb-6 text-sm text-muted-foreground">
             Enter your {platformNames[platform]} profile information
           </p>
 
@@ -99,7 +99,7 @@ export default function ExternalProfileModal({
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input-surface w-full px-4 py-2"
                 required
               />
             </div>
@@ -113,7 +113,7 @@ export default function ExternalProfileModal({
                     value={solved}
                     onChange={(e) => setSolved(parseInt(e.target.value) || 0)}
                     min="0"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input-surface w-full px-4 py-2"
                   />
                 </div>
                 <div>
@@ -123,7 +123,7 @@ export default function ExternalProfileModal({
                     value={rating}
                     onChange={(e) => setRating(parseInt(e.target.value) || 0)}
                     min="0"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input-surface w-full px-4 py-2"
                   />
                 </div>
               </>
@@ -138,7 +138,7 @@ export default function ExternalProfileModal({
                     value={rating}
                     onChange={(e) => setRating(parseInt(e.target.value) || 0)}
                     min="0"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input-surface w-full px-4 py-2"
                   />
                 </div>
                 <div>
@@ -148,7 +148,7 @@ export default function ExternalProfileModal({
                     value={maxRating}
                     onChange={(e) => setMaxRating(parseInt(e.target.value) || 0)}
                     min="0"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input-surface w-full px-4 py-2"
                   />
                 </div>
               </>
@@ -162,13 +162,13 @@ export default function ExternalProfileModal({
                   value={rating}
                   onChange={(e) => setRating(parseInt(e.target.value) || 0)}
                   min="0"
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input-surface w-full px-4 py-2"
                 />
               </div>
             )}
 
             {error && (
-              <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-2 rounded-lg text-sm">
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-700 dark:text-red-300">
                 {error}
               </div>
             )}
@@ -177,14 +177,14 @@ export default function ExternalProfileModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+                className="flex-1 rounded-xl bg-primary px-4 py-2 font-semibold text-primary-foreground transition duration-200 hover:brightness-110 disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Save'}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition"
+                className="rounded-xl border border-border/70 bg-secondary/70 px-4 py-2 text-foreground transition hover:bg-accent"
               >
                 Cancel
               </button>
