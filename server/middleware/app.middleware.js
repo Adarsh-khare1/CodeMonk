@@ -29,21 +29,17 @@ export const setupMiddleware = (app) => {
   app.use(
     cors({
       origin: function (origin, callback) {
-        console.log("Incoming Origin:", origin);
+  if (!origin) return callback(null, true);
 
-        // Allow Postman/mobile apps/no origin
-        if (!origin) {
-          return callback(null, true);
-        }
+  if (
+    allowedOrigins.includes(origin) ||
+    /^https:\/\/code-monk.*\.vercel\.app$/.test(origin)
+  ) {
+    return callback(null, true);
+  }
 
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-
-        console.log("❌ Blocked Origin:", origin);
-
-        return callback(new Error(`CORS blocked for origin: ${origin}`));
-      },
+  callback(new Error(`CORS blocked for origin: ${origin}`));
+},
 
       credentials: true,
 
