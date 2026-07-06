@@ -7,8 +7,8 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Loader from '@/components/Loader';
 // Add your other components here!
-import StatsCards from '@/components/StatsCards'; 
-import PlatformCard from '@/components/PlatformCard'; 
+import { StatsCards } from '@/components/StatsCards'; 
+import { PlatformCard } from '@/components/PlatformCard';
 
 export default function Home() {
   const { user, loading } = useAuth();
