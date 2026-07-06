@@ -46,8 +46,8 @@ export default function Home() {
         {/* EXAMPLE: If you want to add marketing content below the video, put it here. 
             Do NOT put Dashboard user stats here, as guests don't have stats yet! */}
         <div className="relative z-10 bg-background pt-20 pb-32 flex flex-col items-center justify-center text-center">
-           <h2 className="text-3xl font-bold mb-4">Start your coding journey today</h2>
-           <p className="text-muted-foreground mb-8">Sign up to track your LeetCode and Codeforces progress.</p>
+           {/* <h2 className="text-3xl font-bold mb-4">Start your coding journey today</h2>
+           <p className="text-muted-foreground mb-8">Sign up to track your LeetCode and Codeforces progress.</p> */}
         </div>
       </main>
       
