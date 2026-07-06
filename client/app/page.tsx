@@ -6,21 +6,20 @@ import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Loader from '@/components/Loader';
-// Add your other components here!
-import { StatsCards } from '@/components/StatsCards'; 
-import { PlatformCard } from '@/components/PlatformCard';
 
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [showLoader, setShowLoader] = useState(true);
 
+  // Redirect logged-in users to the Dashboard
   useEffect(() => {
     if (!loading && user) {
       router.replace('/dashboard');
     }
   }, [user, loading, router]);
 
+  // Hide loader after initial auth check
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => {
@@ -35,23 +34,20 @@ export default function Home() {
     return <Loader />;
   }
 
-  // ✅ Add your components inside this div, below the Hero
+  // Normal guest landing page
   return (
     <div className="relative min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-1">
+        {/* Because Hero is now 'relative', anything you put below it will show up! */}
         <Hero />
         
-        {/* Everything below the Hero goes here */}
-        <div className="relative z-10 bg-background pt-20 pb-32">
-          <div className="container mx-auto px-4 space-y-20">
-            {/* Example: Add your stats and platform cards here */}
-            <StatsCards />
-            
-            {/* You can pass required props if PlatformCard needs them */}
-            {/* <PlatformCard /> */}
-          </div>
+        {/* EXAMPLE: If you want to add marketing content below the video, put it here. 
+            Do NOT put Dashboard user stats here, as guests don't have stats yet! */}
+        <div className="relative z-10 bg-background pt-20 pb-32 flex flex-col items-center justify-center text-center">
+           <h2 className="text-3xl font-bold mb-4">Start your coding journey today</h2>
+           <p className="text-muted-foreground mb-8">Sign up to track your LeetCode and Codeforces progress.</p>
         </div>
       </main>
       

@@ -1,16 +1,13 @@
+// components/Loader.tsx
 "use client";
 
-import "./loader.css";
+import "./loader.css"; // Import the CSS file for the spinner
 
 interface LoaderProps {
   fadingOut?: boolean;
-  message?: string;        // ← Added for flexibility
 }
 
-const Loader = ({ 
-  fadingOut = false, 
-  message = "Redirecting" 
-}: LoaderProps) => {
+const Loader = ({ fadingOut = false }: LoaderProps) => {
   return (
     <div className={`loader-wrapper ${fadingOut ? "fade-out" : ""}`}>
       <div className="body">
@@ -34,7 +31,7 @@ const Loader = ({
         <span></span>
       </div>
 
-      <h1>{message}</h1>
+      <h1>Redirecting</h1>
     </div>
   );
 };
