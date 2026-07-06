@@ -85,11 +85,17 @@ api.interceptors.response.use(
 
     // Handle specific error types
     if (error.response?.status === 401) {
-      console.warn('🔐 Unauthorized - clearing auth state');
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('auth:logout'));
-      }
-    } else if (error.response?.status === 403) {
+  if (error.config?.url === "/auth/me") {
+    // Guest user visiting the site for the first time
+    return Promise.reject(error);
+  }
+
+  console.warn("🔐 Unauthorized - clearing auth state");
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("auth:logout"));
+  }
+} else if (error.response?.status === 403) {
       console.warn('🚫 Forbidden access');
     } else if (status >= 500) {
       console.error('💥 Server error');

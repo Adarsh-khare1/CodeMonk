@@ -26,9 +26,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const fetchCurrentUser = async () => {
+const fetchCurrentUser = async () => {
+  try {
     const { data } = await api.get("/auth/me");
+
     const currentUser: User = {
       _id: data.user.id,
       username: data.user.username,
@@ -37,7 +38,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setUser(currentUser);
     return currentUser;
-  };
+  } catch (err: any) {
+    if (err.response?.status === 401) {
+      // User is simply not logged in
+      setUser(null);
+      return null;
+    }
+
+    // Any other error should still be thrown
+    throw err;
+  }
+};
 
   // ---------------- HYDRATE FROM COOKIE SESSION ----------------
   useEffect(() => {
