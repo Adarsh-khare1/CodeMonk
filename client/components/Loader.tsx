@@ -1,13 +1,16 @@
-// components/Loader.tsx
 "use client";
 
 import "./loader.css";
 
 interface LoaderProps {
   fadingOut?: boolean;
+  message?: string;        // ← Added for flexibility
 }
 
-const Loader = ({ fadingOut = false }: LoaderProps) => {
+const Loader = ({ 
+  fadingOut = false, 
+  message = "Redirecting" 
+}: LoaderProps) => {
   return (
     <div className={`loader-wrapper ${fadingOut ? "fade-out" : ""}`}>
       <div className="body">
@@ -31,7 +34,7 @@ const Loader = ({ fadingOut = false }: LoaderProps) => {
         <span></span>
       </div>
 
-      <h1>Redirecting</h1>
+      <h1>{message}</h1>
     </div>
   );
 };

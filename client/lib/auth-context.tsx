@@ -129,16 +129,18 @@ const fetchCurrentUser = async () => {
   };
 
   // ---------------- LOGOUT ----------------
-  const logout = async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
+ const logout = async () => {
+  try {
+    await api.post("/auth/logout");
+  } catch (err) {
+    console.error("Logout error:", err);
+  }
 
-    setUser(null);
-    router.push("/");
-  };
+  setUser(null);
+  setLoading(false);        // ← Important
+  router.push("/");
+  router.refresh();         // Refresh server components if needed
+};
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, logout }}>

@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Loader from '@/components/Loader';
@@ -10,24 +10,32 @@ import Loader from '@/components/Loader';
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [showLoader, setShowLoader] = useState(true);
 
-  // Redirect logged-in users to dashboard
+  // Redirect logged-in users
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/dashboard'); // replace instead of push
+      router.replace('/dashboard');
     }
   }, [user, loading, router]);
 
-  // Show loading while auth state initializes
-  if (loading) {
-    return (
-      <Loader />
-    );
+  // Hide loader after initial auth check
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => {
+        setShowLoader(false);
+      }, 800); // Small delay for smooth feel
+
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  // Show loader during initial load OR when redirecting
+  if (loading || (user && showLoader)) {
+    return <Loader />;
   }
 
-  // If user is logged in, Home will rarely render
-  if (user) return null;
-
+  // Normal guest landing page
   return (
     <div className="relative min-h-screen">
       <Navbar />
