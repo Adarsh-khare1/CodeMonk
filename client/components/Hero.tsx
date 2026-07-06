@@ -47,7 +47,7 @@ export default function Hero() {
   }, [mounted]);
 
   return (
-    <section className="fixed min-h-screen w-full overflow-hidden text-foreground">
+    <section className="relative min-h-screen w-full overflow-hidden text-foreground">
       
       {/* LOADER OVERLAY */}
       {!heroLoaded && (
