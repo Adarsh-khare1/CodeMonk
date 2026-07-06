@@ -94,11 +94,14 @@ export const getAnalytics = async (req, res) => {
 };
 
 /* ---------------- EXTERNAL PROFILES ---------------- */
-
 export const updateExternalProfile = async (req, res) => {
   try {
     const { platform, profile } = req.body;
     const userId = req.user._id;
+
+    if (!platform || !profile) {
+      return res.status(400).json({ message: 'Platform and profile data are required' });
+    }
 
     if (!validatePlatform(platform)) {
       return res.status(400).json({ message: 'Invalid platform' });
@@ -109,36 +112,29 @@ export const updateExternalProfile = async (req, res) => {
 
     const validatedProfile = validateProfileData(platform, profile);
 
+    // Safe update for nested schema
+    if (!user.externalProfiles) {
+      user.externalProfiles = {};
+    }
+
     user.externalProfiles[platform] = {
-      ...user.externalProfiles[platform],
+      ...getDefaultProfile(platform),
       ...validatedProfile,
+      updatedAt: new Date()
     };
 
     await user.save();
-    res.json({ externalProfiles: user.externalProfiles });
+
+    res.json({ 
+      success: true,
+      externalProfiles: user.externalProfiles 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const removeExternalProfile = async (req, res) => {
-  try {
-    const { platform } = req.body;
-    const userId = req.user._id;
-
-    if (!validatePlatform(platform)) {
-      return res.status(400).json({ message: 'Invalid platform' });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    user.externalProfiles[platform] = getDefaultProfile(platform);
-
-    await user.save();
-    res.json({ externalProfiles: user.externalProfiles });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('UPDATE EXTERNAL PROFILE ERROR:', error);
+    res.status(500).json({ 
+      message: 'Failed to update external profile', 
+      error: error.message 
+    });
   }
 };
 
