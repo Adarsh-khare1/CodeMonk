@@ -16,6 +16,12 @@ export default function Hero() {
   useEffect(() => {
     if (!mounted) return;
 
+    // FAILSAFE: Force the loader to disappear after 1.5 seconds, 
+    // even if the video hasn't finished loading yet.
+    const failsafeTimer = setTimeout(() => {
+      setHeroLoaded(true);
+    }, 1500);
+
     const visited = localStorage.getItem("visitedBefore");
 
     const timer = setTimeout(() => {
@@ -34,7 +40,10 @@ export default function Hero() {
       localStorage.setItem("visitedBefore", "true");
     }, 50);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(failsafeTimer);
+    };
   }, [mounted]);
 
   return (
@@ -57,6 +66,7 @@ export default function Hero() {
         autoPlay
         playsInline
         preload="auto"
+        onLoadedData={() => setHeroLoaded(true)} // <-- Changed this to be more reliable
         onCanPlayThrough={() => setHeroLoaded(true)}
         className="
           absolute inset-0
@@ -92,7 +102,7 @@ export default function Hero() {
             videoRef.current.muted = soundOn;
             setSoundOn(!soundOn);
           }}
-          className="mt-6 w-fit rounded-xl border border-border/70 bg-card/70 px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-accent"
+          className="mt-6 w-fit rounded-xl border border-border/70 bg-card/70 px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-accent pointer-events-auto"
         >
           {soundOn ? "Mute Sound" : "Play Sound"}
         </button>
