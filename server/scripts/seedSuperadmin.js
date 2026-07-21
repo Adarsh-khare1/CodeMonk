@@ -7,7 +7,7 @@ export const seedSuperadmin = async () => {
 
     if (!user) {
       user = new User({
-        username: 'adarsh',
+        username: 'adarsh_superadmin', // Use a more unique username
         email,
         password: '123456',
         role: 'superadmin'
@@ -16,10 +16,13 @@ export const seedSuperadmin = async () => {
       console.log('✅ Superadmin created');
     } else {
       // Use updateOne to avoid full-document revalidation on existing records
-      // (old records may be missing fields that are now required)
       const updates = {};
       if (user.role !== 'superadmin') updates.role = 'superadmin';
-      if (!user.username) updates.username = 'adarsh';
+      
+      // If the user doesn't have a username, generate a unique one
+      if (!user.username) {
+        updates.username = `adarsh_${Date.now().toString().slice(-6)}`;
+      }
 
       if (Object.keys(updates).length > 0) {
         await User.updateOne({ email }, { $set: updates });
@@ -32,4 +35,5 @@ export const seedSuperadmin = async () => {
     console.error('❌ Error seeding superadmin:', error);
   }
 };
+
 
