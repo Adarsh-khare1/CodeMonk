@@ -8,7 +8,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
-    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
+    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "1036383072036-3r7u251hgec6e0cprlpp2haq53o4ps45.apps.googleusercontent.com"}>
       <ThemeProvider>
         <AuthProvider>
           {children}
