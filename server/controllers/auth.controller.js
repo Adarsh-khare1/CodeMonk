@@ -1,5 +1,8 @@
 import User from '../models/User.model.js';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const COOKIE_NAME = 'auth_token';
 
@@ -98,6 +101,8 @@ export const signup = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        role: user.role,
+        avatar: user.avatar,
       },
     });
   } catch (error) {
@@ -176,6 +181,8 @@ export const login = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        role: user.role,
+        avatar: user.avatar,
       },
     });
   } catch (error) {
@@ -206,6 +213,8 @@ export const getCurrentUser = async (req, res) => {
         id: req.user._id,
         username: req.user.username,
         email: req.user.email,
+        role: req.user.role,
+        avatar: req.user.avatar,
       },
     });
   } catch (error) {
@@ -225,5 +234,63 @@ export const logout = async (req, res) => {
       message: 'Server error',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
     });
+  }
+};
+
+export const googleLogin = async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) return res.status(400).json({ message: 'Missing ID token' });
+  
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+    
+    let user = await User.findOne({ googleId });
+    if (!user) {
+      user = await User.findOne({ email });
+      if (user) {
+        // Link existing email to googleId
+        user.googleId = googleId;
+        await user.save();
+      } else {
+        // Create new user
+        const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
+        let username = baseUsername;
+        let counter = 1;
+        while (await User.findOne({ username })) {
+          username = `${baseUsername}${counter}`;
+          counter++;
+        }
+        user = new User({
+          googleId,
+          email,
+          username,
+          avatar: picture
+        });
+        await user.save();
+      }
+    }
+    
+    const token = generateToken(user._id);
+    setAuthCookie(res, token);
+    
+    res.json({
+      message: 'Google login successful',
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      },
+    });
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(401).json({ message: 'Invalid Google token' });
   }
 };

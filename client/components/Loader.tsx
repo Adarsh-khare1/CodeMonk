@@ -1,7 +1,7 @@
 // components/Loader.tsx
 "use client";
 
-import "./loader.css"; // Import the CSS file for the spinner
+import { Loader2 } from "lucide-react";
 
 interface LoaderProps {
   fadingOut?: boolean;
@@ -9,29 +9,8 @@ interface LoaderProps {
 
 const Loader = ({ fadingOut = false }: LoaderProps) => {
   return (
-    <div className={`loader-wrapper ${fadingOut ? "fade-out" : ""}`}>
-      <div className="body">
-        <span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-        </span>
-
-        <div className="base">
-          <span></span>
-          <div className="face"></div>
-        </div>
-      </div>
-
-      <div className="longfazers">
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-
-      <h1>Redirecting</h1>
+    <div className={`flex items-center justify-center min-h-[200px] w-full ${fadingOut ? "animate-fadeOut" : ""}`}>
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
 };

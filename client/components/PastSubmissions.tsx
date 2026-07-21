@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { Clock, CheckCircle, XCircle, AlertCircle,} from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, ChevronRight, ChevronDown } from 'lucide-react';
 import Loader from '@/components/Loader';
 
 interface PastSubmission {
@@ -49,11 +49,11 @@ export default function PastSubmissions({ problemId, user, onSelectSubmission }:
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Accepted':
-        return <CheckCircle className="h-4 w-4 text-green-400" />;
+        return <CheckCircle className="h-4 w-4 text-emerald-500" />;
       case 'Time Limit Exceeded':
-        return <AlertCircle className="h-4 w-4 text-yellow-400" />;
+        return <AlertCircle className="h-4 w-4 text-amber-500" />;
       default:
-        return <XCircle className="h-4 w-4 text-red-400" />;
+        return <XCircle className="h-4 w-4 text-red-500" />;
     }
   };
 
@@ -74,15 +74,15 @@ export default function PastSubmissions({ problemId, user, onSelectSubmission }:
 
   if (!user) {
     return (
-      <div className="surface-primary p-4 text-sm text-muted-foreground">
-        Login to view past submissions
+      <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Login to view your submission history
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="surface-primary flex justify-center p-6">
+      <div className="flex justify-center rounded-xl border border-border bg-card p-12">
         <Loader />
       </div>
     );
@@ -90,54 +90,101 @@ export default function PastSubmissions({ problemId, user, onSelectSubmission }:
 
   if (submissions.length === 0) {
     return (
-      <div className="surface-primary p-4 text-sm text-muted-foreground">
-        No past submissions
+      <div className="rounded-xl border border-border bg-card p-12 text-center text-sm text-muted-foreground flex flex-col items-center">
+        <Clock className="mb-3 h-8 w-8 opacity-20" />
+        No past submissions yet. Run your code to test it!
       </div>
     );
   }
 
   return (
-    <div className="surface-primary overflow-hidden">
-      <div className="hairline-divider px-4 py-3">
-        <h3 className="font-semibold text-sm">Past Submissions</h3>
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      <div className="bg-secondary/40 px-5 py-4 border-b border-border">
+        <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+          <Clock className="h-4 w-4" />
+          Submissions History
+        </h3>
       </div>
-      <div className="max-h-96 overflow-y-auto">
-        {submissions.map((sub) => (
-          <div
-            key={sub._id}
-            className={`cursor-pointer border-b border-border/60 p-3 transition hover:bg-accent/60 ${
-              selectedId === sub._id ? 'bg-accent/70' : ''
-            }`}
-            onClick={() => {
-              setSelectedId(sub._id);
-              setExpandedId(expandedId === sub._id ? null : sub._id);
-              onSelectSubmission(sub);
-            }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                {getStatusIcon(sub.status)}
-                <span className={`text-xs font-medium ${
-                  sub.status === 'Accepted' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {sub.status}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                {formatTime(sub.createdAt)}
-              </div>
-            </div>
-            <div className="mb-1 text-xs text-muted-foreground">
-              {sub.passed} / {sub.total} passed • {sub.language}
-            </div>
-            {expandedId === sub._id && (
-              <div className="font-code mt-2 max-h-48 overflow-y-auto rounded-xl border border-border/60 bg-background/90 p-2 text-xs text-foreground">
-                <pre className="whitespace-pre-wrap break-words">{sub.code}</pre>
-              </div>
-            )}
-          </div>
-        ))}
+      
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-5 py-3 font-medium">Time Submitted</th>
+              <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Passed</th>
+              <th className="px-5 py-3 font-medium">Language</th>
+              <th className="px-5 py-3 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60">
+            {submissions.map((sub) => {
+              const isSelected = selectedId === sub._id;
+              const isExpanded = expandedId === sub._id;
+              
+              return (
+                <React.Fragment key={sub._id}>
+                  <tr 
+                    className={`group cursor-pointer transition-colors hover:bg-accent/40 ${isSelected ? 'bg-accent/20' : ''}`}
+                    onClick={() => {
+                      setSelectedId(sub._id);
+                      setExpandedId(isExpanded ? null : sub._id);
+                      onSelectSubmission(sub);
+                    }}
+                  >
+                    <td className="px-5 py-4 whitespace-nowrap text-muted-foreground group-hover:text-foreground transition-colors">
+                      {formatTime(sub.createdAt)}
+                    </td>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 font-medium">
+                        {getStatusIcon(sub.status)}
+                        <span className={
+                          sub.status === 'Accepted' ? 'text-emerald-500' : 'text-red-500'
+                        }>
+                          {sub.status}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 whitespace-nowrap text-muted-foreground">
+                      {sub.passed} / {sub.total}
+                    </td>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
+                        {sub.language}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 whitespace-nowrap text-right text-muted-foreground">
+                      {isExpanded ? <ChevronDown className="h-4 w-4 inline-block" /> : <ChevronRight className="h-4 w-4 inline-block" />}
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr className="bg-accent/10">
+                      <td colSpan={5} className="p-0 border-b border-border">
+                        <div className="p-5 border-t-0 border-x-4 border-l-primary border-r-transparent border-y-transparent">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Submitted Code</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectSubmission(sub);
+                              }}
+                              className="text-xs text-primary hover:underline font-medium"
+                            >
+                              Restore Code
+                            </button>
+                          </div>
+                          <div className="font-code overflow-x-auto rounded-lg border border-border/40 bg-[#1e1e1e] p-4 text-xs text-blue-300">
+                            <pre className="whitespace-pre-wrap leading-relaxed">{sub.code}</pre>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );

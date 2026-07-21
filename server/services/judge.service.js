@@ -54,7 +54,12 @@ const getHeaders = () => {
   };
 
   if (JUDGE0_API_KEY) {
-    headers["X-Auth-Token"] = JUDGE0_API_KEY;
+    if (JUDGE0_URL.includes("rapidapi.com")) {
+      headers["X-RapidAPI-Key"] = JUDGE0_API_KEY;
+      headers["X-RapidAPI-Host"] = new URL(JUDGE0_URL).hostname;
+    } else {
+      headers["X-Auth-Token"] = JUDGE0_API_KEY;
+    }
   }
 
   return headers;
@@ -224,10 +229,106 @@ const pollSubmission = async (token) => {
 };
 
 /* =========================================
+   JDoodle API Integration
+========================================= */
+
+const JDOODLE_URL = "https://api.jdoodle.com/v1/execute";
+
+const runTestCaseJDoodle = async (code, languageName, input, expectedOutput) => {
+  const clientId = process.env.JDOODLE_CLIENT_ID;
+  const clientSecret = process.env.JDOODLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("JDoodle credentials (JDOODLE_CLIENT_ID & JDOODLE_CLIENT_SECRET) missing in .env");
+  }
+
+  const langMap = {
+    c: { language: "c", versionIndex: "0" },
+    cpp: { language: "cpp17", versionIndex: "0" },
+    "c++": { language: "cpp17", versionIndex: "0" },
+    java: { language: "java", versionIndex: "0" },
+    python: { language: "python3", versionIndex: "3" },
+    javascript: { language: "nodejs", versionIndex: "4" }
+  };
+
+  const config = langMap[languageName.toLowerCase()] || { language: "cpp17", versionIndex: "0" };
+
+  const body = {
+    clientId,
+    clientSecret,
+    script: code,
+    stdin: input || "",
+    language: config.language,
+    versionIndex: config.versionIndex
+  };
+
+  const response = await fetch(JDOODLE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    if (response.status === 429 || errText.includes('Daily limit reached')) {
+      throw new Error('JDoodle daily quota reached (200 free executions/day). Please wait until tomorrow or start your local Docker Judge0.');
+    }
+    throw new Error(`JDoodle error: ${errText}`);
+  }
+
+  const result = await response.json();
+
+  if (result.error || result.statusCode === 429) {
+    if (result.error?.includes('Daily limit reached') || result.statusCode === 429) {
+      throw new Error('JDoodle daily quota reached (200 free executions/day). Please wait until tomorrow or start your local Docker Judge0.');
+    }
+    throw new Error(`JDoodle error: ${result.error}`);
+  }
+
+  const output = result.output || "";
+  const actual = normalizeOutput(output);
+  const expected = normalizeOutput(expectedOutput || "");
+
+  let status = "Accepted";
+  if (result.statusCode && result.statusCode !== 200) {
+    status = "Compilation Error";
+  }
+
+  const passed = actual === expected;
+  if (!passed && status === "Accepted") {
+    status = "Wrong Answer";
+  }
+
+  const cpuTime = result.cpuTime ? parseFloat(result.cpuTime) * 1000 : 0;
+  const memoryUsed = result.memory ? parseInt(result.memory, 10) : 0;
+
+  return {
+    input,
+    status,
+    passed,
+    actual,
+    expected,
+    error: passed ? null : { message: output.split('\n')[0] || "Output mismatch", full: output, line: null },
+    statusId: null,
+    stdout: output,
+    stderr: "",
+    compileOutput: "",
+    message: "",
+    executionTime: cpuTime,
+    memoryUsed
+  };
+};
+
+/* =========================================
    Run Single Test
 ========================================= */
 
-const runTestCase = async (code, languageId, input, expectedOutput) => {
+const runTestCase = async (code, languageId, languageName, input, expectedOutput) => {
+  // Check if JDoodle flag or credentials are active
+  if (process.env.USE_JDOODLE === "true" || (process.env.JDOODLE_CLIENT_ID && process.env.JDOODLE_CLIENT_SECRET)) {
+    return runTestCaseJDoodle(code, languageName, input, expectedOutput);
+  }
+
   const token = await submitToJudge0(code, languageId, input, expectedOutput);
   let result;
 
@@ -251,7 +352,6 @@ const runTestCase = async (code, languageId, input, expectedOutput) => {
   const status = classifyStatus(result, diagnosticsText);
   const passed = status === "Accepted" && actual === expected;
 
-  // Format error object if there's an error
   let errorObj = null;
   if (compile || stderr || message || isFatalJudgeStatus(status)) {
     const errorText = compile || stderr || message || result?.status?.description || "Error occurred";
@@ -293,7 +393,7 @@ export const runSampleTests = async (code, sampleTests, language) => {
 
   for (let i = 0; i < sampleTests.length; i++) {
     const t = sampleTests[i];
-    const r = await runTestCase(code, languageId, t.input, t.expectedOutput);
+    const r = await runTestCase(code, languageId, language, t.input, t.expectedOutput);
     totalExecutionTime += r.executionTime;
     maxMemoryUsed = Math.max(maxMemoryUsed, r.memoryUsed);
 
@@ -339,7 +439,7 @@ export const judgeSubmission = async (code, testCases, language) => {
 
   for (let i = 0; i < testCases.length; i++) {
     const t = testCases[i];
-    const r = await runTestCase(code, languageId, t.input, t.expectedOutput);
+    const r = await runTestCase(code, languageId, language, t.input, t.expectedOutput);
 
     time += r.executionTime;
     memory = Math.max(memory, r.memoryUsed);

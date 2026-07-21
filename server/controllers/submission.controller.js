@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { runSampleTests, judgeSubmission } from "../services/judge.service.js";
+import { evaluateUserBadges } from "../services/badge.service.js";
 import Submission from "../models/Submission.model.js";
 import SubmissionHistory from "../models/SubmissionHistory.model.js";
 import User from "../models/User.model.js";
@@ -216,8 +217,8 @@ export const submitSolution = async (req, res) => {
     // USER + STREAK + HEATMAP
     // ================================
     const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-    const user = await User.findById(userId).select("solvedProblems submissions activityByDate streak");
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const user = await User.findById(userId).populate('solvedProblems.problemId');
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -230,11 +231,28 @@ export const submitSolution = async (req, res) => {
 
     if (finalResult.status === "Accepted") {
       const alreadySolved = user.solvedProblems.some(
-        p => p.problemId.toString() === resolvedProblemId.toString()
+        p => (p.problemId?._id || p.problemId).toString() === resolvedProblemId.toString()
       );
 
       if (!alreadySolved) {
         user.solvedProblems.push({ problemId: resolvedProblemId, solvedAt: today });
+      }
+
+      // Check if this problem is today's Daily Challenge problem
+      const allProblems = await Problem.find({ isDeleted: { $ne: true } }).select('_id').sort({ createdAt: 1 });
+      let hash = 0;
+      for (let i = 0; i < todayStr.length; i++) {
+        hash = (hash << 5) - hash + todayStr.charCodeAt(i);
+        hash |= 0;
+      }
+      const dailyIndex = Math.abs(hash) % (allProblems.length || 1);
+      const dailyId = allProblems[dailyIndex]?._id;
+
+      if (dailyId && dailyId.toString() === resolvedProblemId.toString()) {
+        const alreadyDoneDaily = user.dailyChallengeCompleted.some(d => d.date === todayStr);
+        if (!alreadyDoneDaily) {
+          user.dailyChallengeCompleted.push({ date: todayStr });
+        }
       }
 
       const last = user.streak.lastSolvedDate
@@ -244,9 +262,8 @@ export const submitSolution = async (req, res) => {
       if (!last) user.streak.current = 1;
       else {
         const lastDate = new Date(last.toDateString());
-const todayDate = new Date(today.toDateString());
-
-const diff = (todayDate - lastDate) / 86400000;
+        const todayDate = new Date(today.toDateString());
+        const diff = (todayDate - lastDate) / 86400000;
 
         if (diff === 1) user.streak.current++;
         else if (diff > 1) user.streak.current = 1;
@@ -256,17 +273,10 @@ const diff = (todayDate - lastDate) / 86400000;
       user.streak.longest = Math.max(user.streak.longest, user.streak.current);
     }
 
-    await User.updateOne(
-      { _id: userId },
-      {
-        $set: {
-          solvedProblems: user.solvedProblems,
-          submissions: user.submissions,
-          activityByDate: user.activityByDate,
-          streak: user.streak,
-        },
-      }
-    );
+    await user.save();
+
+    // Evaluate Badges
+    const badgeResult = await evaluateUserBadges(user);
 
     // ================================
     // SEND UI RESPONSE (unchanged)

@@ -20,9 +20,16 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: function() { return !this.googleId; },
     select: false,   // 🔐 IMPORTANT
   },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows multiple nulls
+  },
+  role: { type: String, enum: ['user', 'admin', 'superadmin'], default: 'user' },
+  avatar: { type: String, default: '' },
   solvedProblems: [{
     problemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Problem' },
     solvedAt: { type: Date, default: Date.now },
@@ -56,6 +63,16 @@ const userSchema = new mongoose.Schema({
       rating: { type: Number, default: 0 },
     },
   },
+  badges: [{
+    id: { type: String, required: true },
+    name: { type: String, required: true },
+    icon: { type: String, required: true },
+    description: { type: String, required: true },
+    unlockedAt: { type: Date, default: Date.now }
+  }],
+  dailyChallengeCompleted: [{
+    date: { type: String, required: true }
+  }],
 }, {
   timestamps: true,
 });

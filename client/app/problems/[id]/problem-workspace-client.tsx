@@ -6,12 +6,13 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
 import { Play } from 'lucide-react';
+import { Panel, Group, Separator } from "react-resizable-panels";
 import LoginModal from '@/components/LoginModal';
 import CommentsSection from '@/components/CommentsSection';
 import CodeEditor from '@/components/CodeEditor';
 import SubmissionResult from '@/components/SubmissionResult';
 import PastSubmissions from '@/components/PastSubmissions';
-import AIAssistantPanel from '@/components/AIAssistantPanel';
+import AICoachModal from '@/components/AICoachModal';
 import { getStarterCode } from '@/lib/languageTemplates';
 import Loader from '@/components/Loader';
 
@@ -200,7 +201,7 @@ export default function ProblemWorkspaceClient() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="h-screen flex flex-col overflow-hidden">
       <Navbar />
 
       <LoginModal
@@ -209,113 +210,133 @@ export default function ProblemWorkspaceClient() {
         onSuccess={handleLoginSuccess}
       />
 
-      <div className="app-shell grid grid-cols-1 gap-6 py-8 lg:grid-cols-2">
-        <div className="space-y-6">
-          <div className="surface-primary p-6">
-            <h1 className="text-2xl font-bold tracking-tight">{problem.title}</h1>
-            <p className="mt-4 whitespace-pre-wrap text-foreground/90">
-              {problem.description}
-            </p>
-          </div>
-
-          <div className="surface-primary p-6">
-            <h2 className="font-semibold">Difficulty</h2>
-            <p className="mt-2 text-muted-foreground">{problem.difficulty}</p>
-          </div>
-
-          <div className="surface-primary p-6">
-            <h2 className="font-semibold">Topics</h2>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {problem.topics.map((topic) => (
-                <span key={topic} className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm text-primary">
-                  {topic}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="surface-primary p-6">
-            <h2 className="font-semibold">Constraints</h2>
-            <ul className="mt-2 ml-6 list-disc space-y-1 text-muted-foreground">
-              {problem.constraints.map((constraint, index) => (
-                <li key={index}>{constraint}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="surface-primary p-6">
-            <h2 className="font-semibold">Sample Test Cases</h2>
-            {problem.sampleTestCases.map((testCase, index) => (
-              <div key={index} className="mt-4 rounded-xl border border-border/70 bg-secondary/40 p-3">
-                <p><b>Input:</b> {testCase.input}</p>
-                <p><b>Output:</b> {testCase.output}</p>
-                {testCase.explanation && (
-                  <p className="text-muted-foreground"><b>Explanation:</b> {testCase.explanation}</p>
-                )}
+      <div className="flex-1 w-full p-4 h-[calc(100vh-64px)]">
+        <Group direction="horizontal" className="h-full rounded-2xl border border-border/80 overflow-hidden shadow-[0_18px_45px_-24px_rgba(0,0,0,0.6)]">
+          {/* LEFT PANEL: Problem Details */}
+          <Panel defaultSize={45} minSize={25}>
+            <div className="h-full overflow-y-auto bg-card p-6 space-y-6">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{problem.title}</h1>
+              <div className="flex gap-4 items-center">
+                 <span className="text-muted-foreground font-medium">{problem.difficulty}</span>
+                 <div className="flex flex-wrap gap-2">
+                    {problem.topics.map((topic) => (
+                      <span key={topic} className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
+                        {topic}
+                      </span>
+                    ))}
+                 </div>
               </div>
-            ))}
-          </div>
+              <p className="mt-4 whitespace-pre-wrap text-foreground/90 text-[15px] leading-relaxed font-sans">
+                {problem.description}
+              </p>
+              
+              <div className="mt-6">
+                <h2 className="font-semibold mb-3 text-foreground">Constraints</h2>
+                <ul className="list-disc ml-5 space-y-1 text-sm text-muted-foreground font-code">
+                  {problem.constraints.map((c, i) => <li key={i}>{c}</li>)}
+                </ul>
+              </div>
 
-          <CommentsSection
-            problemId={problemId}
-            comments={comments}
-            onCommentsUpdate={setComments}
-            user={user}
-            onLoginRequired={() => {
-              setLoginAction('comment');
-              setLoginModalOpen(true);
-            }}
-          />
-        </div>
+              <div className="mt-6">
+                <h2 className="font-semibold mb-3 text-foreground">Sample Test Cases</h2>
+                {problem.sampleTestCases.map((tc, i) => (
+                  <div key={i} className="mb-4 rounded-xl border border-border/70 bg-secondary/20 p-4 text-sm font-code shadow-sm">
+                    <p className="mb-1"><span className="text-muted-foreground font-sans text-xs uppercase tracking-wider">Input</span><br/>{tc.input}</p>
+                    <p className="mb-1 mt-3"><span className="text-muted-foreground font-sans text-xs uppercase tracking-wider">Output</span><br/>{tc.output}</p>
+                    {tc.explanation && (
+                      <p className="mt-3 text-muted-foreground border-t border-border/50 pt-3"><span className="font-sans text-xs uppercase tracking-wider">Explanation</span><br/>{tc.explanation}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
 
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="space-y-6 lg:col-span-2">
-              <CodeEditor
-                code={code}
-                onCodeChange={setCode}
-                onSubmit={handleSubmit}
-                onReset={handleResetCode}
-                submitting={submitting}
-                codeSaved={codeSaved}
-                user={user}
-                language={language}
-                onLanguageChange={setLanguage}
-              />
-
-              <SubmissionResult result={result || runResult} />
-
-              <AIAssistantPanel
-                problemId={problemId}
-                code={code}
-                language={language}
-                onApplyOptimizedCode={setCode}
-              />
-
-              <div className="flex justify-center">
-                <button
-                  onClick={handleRunCode}
-                  disabled={running || !code.trim()}
-                  className="flex gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground shadow-sm transition hover:brightness-110 disabled:opacity-50"
-                >
-                  <Play size={16} />
-                  {running ? 'Running...' : 'Run Code'}
-                </button>
+              <div className="mt-8 border-t border-border/50 pt-6 pb-20">
+                 <CommentsSection
+                    problemId={problemId}
+                    comments={comments}
+                    onCommentsUpdate={setComments}
+                    user={user}
+                    onLoginRequired={() => {
+                      setLoginAction('comment');
+                      setLoginModalOpen(true);
+                    }}
+                  />
               </div>
             </div>
+          </Panel>
 
-            <div className="lg:col-span-1">
-              <PastSubmissions
-                problemId={problemId}
-                user={user}
-                onSelectSubmission={(submission) => {
-                  setCode(submission.code);
-                  setLanguage(submission.language);
-                }}
-              />
-            </div>
-          </div>
-        </div>
+          <Separator className="w-[6px] bg-border/40 hover:bg-primary/50 transition-colors cursor-col-resize flex flex-col justify-center items-center">
+            <div className="w-1 h-8 bg-muted-foreground/30 rounded-full" />
+          </Separator>
+
+          {/* RIGHT PANEL: Editor & Console */}
+          <Panel defaultSize={55} minSize={30}>
+            <Group direction="vertical">
+              <Panel defaultSize={65} minSize={20}>
+                <div className="h-full flex flex-col bg-[#1e1e1e]">
+                  <div className="flex-1 relative overflow-hidden">
+                    <CodeEditor
+                      code={code}
+                      onCodeChange={setCode}
+                      onSubmit={handleSubmit}
+                      onReset={handleResetCode}
+                      submitting={submitting}
+                      codeSaved={codeSaved}
+                      user={user}
+                      language={language}
+                      onLanguageChange={setLanguage}
+                    />
+                  </div>
+                  <div className="p-3 border-t border-border/30 flex justify-between items-center bg-[#1e1e1e]">
+                    <AICoachModal
+                      problemId={problemId}
+                      code={code}
+                      language={language}
+                      onApplyOptimizedCode={setCode}
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleRunCode}
+                        disabled={running || !code.trim()}
+                        className="flex items-center gap-2 rounded-lg bg-secondary/80 px-5 py-2 text-sm font-medium text-foreground transition hover:bg-secondary disabled:opacity-50"
+                      >
+                        <Play size={14} />
+                        {running ? 'Running...' : 'Run'}
+                      </button>
+                      <button
+                        onClick={handleSubmit}
+                        disabled={submitting || !code.trim()}
+                        className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition hover:brightness-110 disabled:opacity-50"
+                      >
+                        {submitting ? 'Submitting...' : 'Submit'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Panel>
+
+              <Separator className="h-[6px] bg-border/40 hover:bg-primary/50 transition-colors cursor-row-resize flex justify-center items-center">
+                <div className="h-1 w-8 bg-muted-foreground/30 rounded-full" />
+              </Separator>
+
+              <Panel defaultSize={35} minSize={15}>
+                <div className="h-full overflow-y-auto bg-card p-4">
+                   <div className="max-w-5xl mx-auto space-y-6">
+                      <SubmissionResult result={result || runResult} />
+                      <PastSubmissions
+                        problemId={problemId}
+                        user={user}
+                        onSelectSubmission={(submission) => {
+                          setCode(submission.code);
+                          setLanguage(submission.language);
+                        }}
+                      />
+                   </div>
+                </div>
+              </Panel>
+            </Group>
+          </Panel>
+        </Group>
       </div>
     </div>
   );

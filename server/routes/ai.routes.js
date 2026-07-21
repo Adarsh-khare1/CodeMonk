@@ -5,7 +5,10 @@ import {
   reviewCodeWithGemini,
   optimizeCodeWithGemini,
   chatWithGemini,
+  coachWithGemini,
+  generateRoadmapWithGemini,
 } from '../services/gemini.service.js';
+import { authenticate } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -93,6 +96,48 @@ router.post('/chat', async (req, res) => {
     const statusCode = error.message === 'GEMINI_API_KEY is not configured' ? 503 : 500;
     res.status(statusCode).json({
       error: error.message || 'Failed to send chat message',
+    });
+  }
+});
+
+router.get('/coach', authenticate, async (req, res) => {
+  try {
+    const user = await mongoose.model('User').findById(req.user._id).populate('solvedProblems.problemId');
+    let solvedTopics = [];
+    
+    if (user && user.solvedProblems) {
+      const allTopics = user.solvedProblems.flatMap(sp => sp.problemId?.topics || []);
+      if (allTopics.length > 0) {
+        solvedTopics = [...new Set(allTopics)];
+      }
+    }
+
+    const coaching = await coachWithGemini({ 
+      solvedTopics, 
+      externalProfiles: user.externalProfiles || {},
+      totalSolved: user.solvedProblems?.length || 0
+    });
+    res.json(coaching);
+  } catch (error) {
+    const statusCode = error.message === 'GEMINI_API_KEY is not configured' ? 503 : 500;
+    res.status(statusCode).json({
+      error: error.message || 'Failed to get coaching',
+    });
+  }
+});
+
+router.post('/roadmap', async (req, res) => {
+  try {
+    const { company } = req.body;
+    if (!company) {
+      return res.status(400).json({ error: 'Company name is required' });
+    }
+    const roadmap = await generateRoadmapWithGemini({ company });
+    res.json(roadmap);
+  } catch (error) {
+    const statusCode = error.message === 'GEMINI_API_KEY is not configured' ? 503 : 500;
+    res.status(statusCode).json({
+      error: error.message || 'Failed to generate roadmap',
     });
   }
 });

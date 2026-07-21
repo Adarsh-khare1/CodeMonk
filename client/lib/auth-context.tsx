@@ -12,6 +12,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -40,6 +41,8 @@ const fetchCurrentUser = async () => {
       _id: data.user.id || data.user._id,
       username: data.user.username,
       email: data.user.email,
+      role: data.user.role,
+      avatar: data.user.avatar,
     };
 
     setUser(currentUser);
@@ -95,6 +98,8 @@ const fetchCurrentUser = async () => {
         _id: data.user.id,
         username: data.user.username,
         email: data.user.email,
+        role: data.user.role,
+        avatar: data.user.avatar,
       };
 
       setUser(user);
@@ -117,6 +122,8 @@ const fetchCurrentUser = async () => {
         _id: data.user.id,
         username: data.user.username,
         email: data.user.email,
+        role: data.user.role,
+        avatar: data.user.avatar,
       };
 
       setUser(user);
@@ -142,8 +149,31 @@ const fetchCurrentUser = async () => {
   router.refresh();         // Refresh server components if needed
 };
 
+  // ---------------- GOOGLE LOGIN ----------------
+  const loginWithGoogle = async (idToken: string) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post("/auth/google", { idToken });
+
+      const user: User = {
+        _id: data.user.id,
+        username: data.user.username,
+        email: data.user.email,
+        role: data.user.role,
+        avatar: data.user.avatar,
+      };
+
+      setUser(user);
+    } catch (err) {
+      console.error("Google login error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, loginWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );

@@ -25,6 +25,7 @@ interface User {
 export const useDashboardData = (authUser: any) => {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [userProfile, setUserProfile] = useState<User | null>(null);
+  const [coachData, setCoachData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,12 +37,14 @@ export const useDashboardData = (authUser: any) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [analyticsRes, profileRes] = await Promise.all([
+      const [analyticsRes, profileRes, coachRes] = await Promise.all([
         api.get('/users/analytics'),
         api.get('/users/profile'),
+        api.get('/ai/coach').catch(() => ({ data: null }))
       ]);
       setAnalytics(analyticsRes.data);
       setUserProfile(profileRes.data);
+      setCoachData(coachRes.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -62,6 +65,7 @@ export const useDashboardData = (authUser: any) => {
   return {
     analytics,
     userProfile,
+    coachData,
     loading,
     updateProfile,
     removeProfile,

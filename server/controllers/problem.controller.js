@@ -16,7 +16,7 @@ export const getProblems = async (req, res) => {
     } = req.query;
     const filter = { isDeleted: { $ne: true } };
     const parsedPage = Math.max(parseInt(page, 10) || 1, 1);
-    const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
+    const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 1000);
 
     if (difficulty) filter.difficulty = difficulty;
 
@@ -89,6 +89,41 @@ export const getProblemById = async (req, res) => {
     res.json(problem);
   } catch (error) {
     console.error("GET PROBLEM ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getDailyProblem = async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: "Database unavailable" });
+    }
+
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const problems = await Problem.find({ isDeleted: { $ne: true } })
+      .select('_id slug title difficulty topics description sampleTestCases constraints')
+      .sort({ createdAt: 1 });
+
+    if (!problems || problems.length === 0) {
+      return res.status(404).json({ message: "No problems found" });
+    }
+
+    // Deterministic hash based on date string
+    let hash = 0;
+    for (let i = 0; i < todayStr.length; i++) {
+      hash = (hash << 5) - hash + todayStr.charCodeAt(i);
+      hash |= 0;
+    }
+    const index = Math.abs(hash) % problems.length;
+    const dailyProblem = problems[index];
+
+    res.json({
+      date: todayStr,
+      problem: dailyProblem
+    });
+  } catch (error) {
+    console.error("GET DAILY PROBLEM ERROR:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

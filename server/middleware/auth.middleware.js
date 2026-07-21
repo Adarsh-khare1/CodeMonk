@@ -43,3 +43,19 @@ export const authenticate = async (req, res, next) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const requireAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. Admin only.' });
+  }
+};
+
+export const requireSuperAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'superadmin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. Superadmin only.' });
+  }
+};

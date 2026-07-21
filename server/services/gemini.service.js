@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 
 const getClient = () => {
   if (!process.env.GEMINI_API_KEY) {
@@ -36,19 +36,26 @@ const formatProblemContext = (problem = {}) => ({
 });
 
 const generateJson = async (instruction, payload) => {
-  const client = getClient();
-  const model = client.getGenerativeModel({ model: GEMINI_MODEL });
+  try {
+    const client = getClient();
+    const model = client.getGenerativeModel({ model: GEMINI_MODEL });
 
-  const prompt = `${instruction}
+    const prompt = `${instruction}
 
 Return only valid JSON with no markdown fences, no commentary, and no trailing text.
 
 Payload:
 ${JSON.stringify(payload, null, 2)}`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  return parseJsonResponse(text);
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    return parseJsonResponse(text);
+  } catch (error) {
+    if (error.message?.includes('429') || error.message?.includes('Quota exceeded')) {
+      throw new Error('AI Coach rate limit reached. Please wait a few seconds and try again.');
+    }
+    throw error;
+  }
 };
 
 export const reviewCodeWithGemini = async ({ code, language, problem }) => {
@@ -113,10 +120,11 @@ Return JSON in exactly this shape:
 };
 
 export const chatWithGemini = async ({ message, code, language, problem, history = [] }) => {
-  const client = getClient();
-  const model = client.getGenerativeModel({ model: GEMINI_MODEL });
+  try {
+    const client = getClient();
+    const model = client.getGenerativeModel({ model: GEMINI_MODEL });
 
-  const prompt = `You are a helpful coding coach for a LeetCode-style platform.
+    const prompt = `You are a helpful coding coach for a LeetCode-style platform.
 Answer the user's question about their solution or the current problem.
 Keep the answer practical and compact.
 If you mention code changes, explain them clearly.
@@ -135,8 +143,95 @@ ${code}
 User message:
 ${message}`;
 
-  const result = await model.generateContent(prompt);
-  return {
-    reply: result.response.text().trim(),
+    const result = await model.generateContent(prompt);
+    return {
+      reply: result.response.text().trim(),
+    };
+  } catch (error) {
+    if (error.message?.includes('429') || error.message?.includes('Quota exceeded')) {
+      throw new Error('AI Coach rate limit reached. Please wait a few seconds and try again.');
+    }
+    throw error;
+  }
+};
+
+export const coachWithGemini = async ({ solvedTopics, externalProfiles, totalSolved }) => {
+  const payload = {
+    solvedTopics,
+    externalProfiles,
+    totalSolved
   };
+
+  return generateJson(
+    `You are an expert coding coach. Analyze the user's coding journey. 
+The user has solved ${totalSolved} problems on this platform.
+The user has the following external profiles linked: ${JSON.stringify(externalProfiles)}.
+Topics solved on this platform: ${solvedTopics.length > 0 ? solvedTopics.join(', ') : 'None'}.
+
+If the user has 0 problems solved on this platform and no external profiles linked, warmly welcome them to the platform, suggest they start with basic "Arrays" and "Strings" problems, and set all radarData to 0. Do not give them false praise or assume they have a strong foundation.
+
+If they have solved problems or have external profiles, analyze their strengths and weaknesses based on the topics and ratings.
+
+Generate realistic Radar chart data (0-100) for "Dynamic Prog", "Graphs", "Trees", "Arrays", "Strings", "Math" representing their estimated mastery.
+
+Return JSON in exactly this shape:
+{
+  "strengths": ["string"],
+  "weaknesses": ["string"],
+  "radarData": [
+    { "subject": "Dynamic Prog", "A": number, "fullMark": 100 },
+    { "subject": "Graphs", "A": number, "fullMark": 100 },
+    { "subject": "Trees", "A": number, "fullMark": 100 },
+    { "subject": "Arrays", "A": number, "fullMark": 100 },
+    { "subject": "Strings", "A": number, "fullMark": 100 },
+    { "subject": "Math", "A": number, "fullMark": 100 }
+  ],
+  "recommendation": "string paragraph explaining what to study next"
+}`,
+    payload
+  );
+};
+
+export const generateRoadmapWithGemini = async ({ company }) => {
+  return generateJson(
+    `You are an expert tech recruiter and technical coach. Generate a targeted study roadmap for a software engineering interview at ${company}. 
+Identify the most important data structures and algorithms the company focuses on, and provide a 4-week study plan.
+
+First, determine if "${company}" is a real, recognized company that hires software engineers (or a recognizable startup). 
+If it is a fake company, a joke, or gibberish (e.g., "skibidi toilet", "abcd", "fakecompany"), set "isValidCompany" to false and provide a brief, polite "errorMessage".
+If it is a real company, set "isValidCompany" to true and populate the rest of the fields.
+
+Return JSON in exactly this shape:
+{
+  "isValidCompany": boolean,
+  "errorMessage": "string (only if isValidCompany is false)",
+  "company": "${company}",
+  "overview": "short paragraph about the company's interview style",
+  "focusTopics": ["string"],
+  "weeks": [
+    {
+      "week": 1,
+      "focus": "string",
+      "description": "string"
+    },
+    {
+      "week": 2,
+      "focus": "string",
+      "description": "string"
+    },
+    {
+      "week": 3,
+      "focus": "string",
+      "description": "string"
+    },
+    {
+      "week": 4,
+      "focus": "string",
+      "description": "string"
+    }
+  ],
+  "tips": ["string"]
+}`,
+    { company }
+  );
 };

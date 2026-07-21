@@ -3,6 +3,7 @@ import express from 'express';
 import { connectDB } from './config/database.js';
 import { setupMiddleware } from './middleware/app.middleware.js';
 import { setupRoutes } from './config/routes.js';
+import { seedSuperadmin } from './scripts/seedSuperadmin.js';
 
 const app = express();
 app.set("trust proxy", 1);
@@ -66,6 +67,7 @@ app.use((req, res) => {
 connectDB()
   .then(() => {
     console.log('✅ Database connection established');
+    seedSuperadmin();
 
     const server = app.listen(PORT, () => {
       console.log(`🎉 Server running on port ${PORT}`);

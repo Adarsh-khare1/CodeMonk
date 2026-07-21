@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { X } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onClose, onSuccess, defaultMode = 'login' }: LoginModalProps) {
-  const { login, signup } = useAuth();
+  const { login, signup, loginWithGoogle } = useAuth();
   const [isLogin, setIsLogin] = useState(defaultMode === 'login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -78,6 +79,43 @@ export default function LoginModal({ isOpen, onClose, onSuccess, defaultMode = '
           <p className="mb-6 text-sm text-muted-foreground">
             {isLogin ? 'Login to submit solutions and comment' : 'Create an account to get started'}
           </p>
+
+          <div className="mb-6">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                if (credentialResponse.credential) {
+                  try {
+                    setError('');
+                    setSubmitting(true);
+                    await loginWithGoogle(credentialResponse.credential);
+                    onSuccess?.();
+                    onClose();
+                  } catch (err: any) {
+                    setError('Google Login failed');
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }
+              }}
+              onError={() => {
+                setError('Google Login Failed');
+              }}
+              useOneTap
+              theme="outline"
+              size="large"
+              shape="pill"
+              width="100%"
+            />
+          </div>
+
+          <div className="relative mb-6 text-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <span className="relative bg-background px-4 text-xs uppercase text-muted-foreground">
+              Or continue with email
+            </span>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (

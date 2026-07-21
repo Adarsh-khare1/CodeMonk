@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { usePathname } from "next/navigation";
-import { ChevronDown, LogOut, User } from "lucide-react";
+import { ChevronDown, LogOut, User, Code2, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import LoginModal from "./LoginModal";
@@ -34,12 +34,12 @@ export default function Navbar() {
       <div className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/80 backdrop-blur-xl">
         <header className="app-shell flex min-h-[76px] items-center justify-between gap-4">
           <Link href="/problems" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 shadow-[0_0_0_1px_rgba(96,165,250,0.08)]">
-              <span className="font-code text-sm font-semibold text-primary">CM</span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary shadow-[0_0_0_1px_rgba(96,165,250,0.08)]">
+              <Code2 className="h-6 w-6 text-primary-foreground" />
             </div>
             <div className="leading-tight">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
-                Code<span className="text-primary">Monk</span>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-[1.75rem]">
+                code<span className="text-primary">Monk</span>
               </h1>
               <p className="hidden text-xs text-muted-foreground sm:block">
                 Practice, iterate, and ship cleaner solutions.
@@ -58,6 +58,43 @@ export default function Navbar() {
             >
               Problems
             </Link>
+
+            {!loading && user && (
+              <>
+                <Link
+                  href="/leaderboard"
+                  className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                    pathname.startsWith("/leaderboard")
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  Leaderboard
+                </Link>
+
+                <Link
+                  href="/contests"
+                  className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                    pathname.startsWith("/contests")
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  Contests
+                </Link>
+
+                <Link
+                  href="/roadmaps"
+                  className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                    pathname.startsWith("/roadmaps")
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  Roadmaps
+                </Link>
+              </>
+            )}
 
             {!loading && user && (
               <Link
@@ -89,6 +126,24 @@ export default function Navbar() {
 
                 {dropdownOpen && (
                   <div className="surface-primary absolute right-0 mt-3 w-56 overflow-hidden p-2">
+                    {(user.role === 'admin' || user.role === 'superadmin') && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-primary transition hover:bg-primary/10 mb-1"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                        Admin Panel
+                      </Link>
+                    )}
+                    <Link
+                      href="/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-foreground transition hover:bg-accent mb-1"
+                    >
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      Profile
+                    </Link>
                     <Link
                       href="/dashboard"
                       onClick={() => setDropdownOpen(false)}

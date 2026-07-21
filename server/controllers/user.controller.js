@@ -1,7 +1,9 @@
 import User from '../models/User.model.js';
+import Problem from '../models/Problem.model.js';
 import Submission from '../models/Submission.model.js';
 import SubmissionHistory from '../models/SubmissionHistory.model.js';
-import Problem from '../models/Problem.model.js';
+import { evaluateUserBadges } from '../services/badge.service.js';
+import { fetchLeetCodeStats, fetchCodeforcesStats, fetchCodeChefStats } from '../utils/fetchExternalStats.js';
 import { validatePlatform, getDefaultProfile, validateProfileData } from '../utils/profileUtils.js';
 
 /* ---------------- PROFILE ---------------- */
@@ -16,9 +18,48 @@ export const getUserProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    await evaluateUserBadges(user);
+
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new password are required' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // If user has no password (e.g. google login only), they cannot change password
+    if (!user.password && user.googleId) {
+      return res.status(400).json({ message: 'Cannot change password for Google-only accounts.' });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect current password' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('CHANGE PASSWORD ERROR:', error);
+    res.status(500).json({ message: 'Failed to update password', error: error.message });
   }
 };
 
@@ -99,18 +140,25 @@ export const updateExternalProfile = async (req, res) => {
     const { platform, profile } = req.body;
     const userId = req.user._id;
 
-    if (!platform || !profile) {
-      return res.status(400).json({ message: 'Platform and profile data are required' });
+    if (!platform || !profile || !profile.username) {
+      return res.status(400).json({ message: 'Platform and username are required' });
     }
 
     if (!validatePlatform(platform)) {
       return res.status(400).json({ message: 'Invalid platform' });
     }
 
+    let fetchedStats = {};
+    if (platform === 'leetcode') {
+      fetchedStats = await fetchLeetCodeStats(profile.username);
+    } else if (platform === 'codeforces') {
+      fetchedStats = await fetchCodeforcesStats(profile.username);
+    } else if (platform === 'codechef') {
+      fetchedStats = await fetchCodeChefStats(profile.username);
+    }
+
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
-
-    const validatedProfile = validateProfileData(platform, profile);
 
     // Safe update for nested schema
     if (!user.externalProfiles) {
@@ -118,8 +166,8 @@ export const updateExternalProfile = async (req, res) => {
     }
 
     user.externalProfiles[platform] = {
-      ...getDefaultProfile(platform),
-      ...validatedProfile,
+      username: profile.username,
+      ...fetchedStats,
       updatedAt: new Date()
     };
 
@@ -135,6 +183,30 @@ export const updateExternalProfile = async (req, res) => {
       message: 'Failed to update external profile', 
       error: error.message 
     });
+  }
+};
+
+export const removeExternalProfile = async (req, res) => {
+  try {
+    const { platform } = req.body;
+    const userId = req.user._id;
+
+    if (!platform) {
+      return res.status(400).json({ message: 'Platform is required' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.externalProfiles && user.externalProfiles[platform]) {
+      user.externalProfiles[platform] = getDefaultProfile(platform);
+      await user.save();
+    }
+
+    res.json({ success: true, externalProfiles: user.externalProfiles });
+  } catch (error) {
+    console.error('REMOVE EXTERNAL PROFILE ERROR:', error);
+    res.status(500).json({ message: 'Failed to remove external profile', error: error.message });
   }
 };
 
@@ -247,5 +319,45 @@ export const getSolvedSubmissions = async (req, res) => {
   } catch (err) {
     console.error("getSolvedSubmissions", err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+/* ---------------- SUPERADMIN ---------------- */
+
+export const getUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password -__v').sort({ createdAt: -1 });
+    res.json(users);
+  } catch (error) {
+    console.error('GET USERS ERROR:', error);
+    res.status(500).json({ message: 'Failed to fetch users', error: error.message });
+  }
+};
+
+export const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!['user', 'admin'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role assignment' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role === 'superadmin') {
+      return res.status(403).json({ message: 'Cannot modify superadmin role' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({ success: true, message: `User role updated to ${role}` });
+  } catch (error) {
+    console.error('UPDATE ROLE ERROR:', error);
+    res.status(500).json({ message: 'Failed to update user role', error: error.message });
   }
 };

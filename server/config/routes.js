@@ -5,7 +5,8 @@ import commentRoutes from '../routes/comment.routes.js';
 import userRoutes from '../routes/user.routes.js';
 import dashboardRoutes from '../routes/dashboard.routes.js';
 import aiRoutes from '../routes/ai.routes.js';
-
+import leaderboardRoutes from '../routes/leaderboard.routes.js';
+import contestRoutes from '../routes/contest.routes.js';
 
 export const setupRoutes = (app) => {
   try {
@@ -44,6 +45,16 @@ export const setupRoutes = (app) => {
       console.log('🤖 AI route accessed:', req.method, req.url);
       next();
     }, aiRoutes);
+
+    app.use('/api/leaderboard', (req, res, next) => {
+      console.log('🏆 Leaderboard route accessed:', req.method, req.url);
+      next();
+    }, leaderboardRoutes);
+
+    app.use('/api/contests', (req, res, next) => {
+      console.log('🏁 Contests route accessed:', req.method, req.url);
+      next();
+    }, contestRoutes);
 
     // Health check with detailed logging
     app.get('/api/health', (req, res) => {

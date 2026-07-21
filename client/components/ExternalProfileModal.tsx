@@ -19,23 +19,14 @@ export default function ExternalProfileModal({
   onSave,
 }: ExternalProfileModalProps) {
   const [username, setUsername] = useState('');
-  const [solved, setSolved] = useState(0);
-  const [rating, setRating] = useState(0);
-  const [maxRating, setMaxRating] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (isOpen && existingProfile) {
       setUsername(existingProfile.username || '');
-      setSolved(existingProfile.solved || 0);
-      setRating(existingProfile.rating || 0);
-      setMaxRating(existingProfile.maxRating || 0);
     } else if (isOpen) {
       setUsername('');
-      setSolved(0);
-      setRating(0);
-      setMaxRating(0);
     }
   }, [isOpen, existingProfile]);
 
@@ -47,22 +38,11 @@ export default function ExternalProfileModal({
     setLoading(true);
 
     try {
-      const profile: any = { username: username.trim() };
-      
-      if (platform === 'leetcode') {
-        profile.solved = parseInt(String(solved)) || 0;
-        profile.rating = parseInt(String(rating)) || 0;
-      } else if (platform === 'codeforces') {
-        profile.rating = parseInt(String(rating)) || 0;
-        profile.maxRating = parseInt(String(maxRating)) || 0;
-      } else if (platform === 'codechef') {
-        profile.rating = parseInt(String(rating)) || 0;
-      }
-
-      await onSave(platform, profile);
+      await onSave(platform, { username });
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save profile');
+    } catch (error) {
+      console.error('Save failed:', error);
+      setError('Failed to save profile');
     } finally {
       setLoading(false);
     }
@@ -105,66 +85,21 @@ export default function ExternalProfileModal({
             </div>
 
             {platform === 'leetcode' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Problems Solved</label>
-                  <input
-                    type="number"
-                    value={solved}
-                    onChange={(e) => setSolved(parseInt(e.target.value) || 0)}
-                    min="0"
-                    className="input-surface w-full px-4 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Rating (Optional)</label>
-                  <input
-                    type="number"
-                    value={rating}
-                    onChange={(e) => setRating(parseInt(e.target.value) || 0)}
-                    min="0"
-                    className="input-surface w-full px-4 py-2"
-                  />
-                </div>
-              </>
+              <p className="text-sm text-muted-foreground mt-2">
+                We will automatically fetch your solved count and rating from LeetCode.
+              </p>
             )}
 
             {platform === 'codeforces' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Current Rating</label>
-                  <input
-                    type="number"
-                    value={rating}
-                    onChange={(e) => setRating(parseInt(e.target.value) || 0)}
-                    min="0"
-                    className="input-surface w-full px-4 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Max Rating</label>
-                  <input
-                    type="number"
-                    value={maxRating}
-                    onChange={(e) => setMaxRating(parseInt(e.target.value) || 0)}
-                    min="0"
-                    className="input-surface w-full px-4 py-2"
-                  />
-                </div>
-              </>
+              <p className="text-sm text-muted-foreground mt-2">
+                We will automatically fetch your current and max rating from Codeforces.
+              </p>
             )}
 
             {platform === 'codechef' && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Rating</label>
-                <input
-                  type="number"
-                  value={rating}
-                  onChange={(e) => setRating(parseInt(e.target.value) || 0)}
-                  min="0"
-                  className="input-surface w-full px-4 py-2"
-                />
-              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                We will automatically fetch your rating from CodeChef.
+              </p>
             )}
 
             {error && (
@@ -175,18 +110,18 @@ export default function ExternalProfileModal({
 
             <div className="flex gap-3">
               <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 rounded-xl bg-primary px-4 py-2 font-semibold text-primary-foreground transition duration-200 hover:brightness-110 disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : 'Save'}
-              </button>
-              <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl border border-border/70 bg-secondary/70 px-4 py-2 text-foreground transition hover:bg-accent"
+                className="flex-1 rounded-xl bg-secondary/80 px-4 py-2.5 text-sm font-medium transition hover:bg-secondary"
               >
                 Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !username.trim()}
+                className="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : 'Save'}
               </button>
             </div>
           </form>
