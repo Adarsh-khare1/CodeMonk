@@ -211,7 +211,7 @@ export default function ProblemWorkspaceClient() {
       />
 
       <div className="flex-1 w-full p-4 h-[calc(100vh-64px)]">
-        <Group direction="horizontal" className="h-full rounded-2xl border border-border/80 overflow-hidden shadow-[0_18px_45px_-24px_rgba(0,0,0,0.6)]">
+        <Group orientation="horizontal" className="h-full rounded-2xl border border-border/80 overflow-hidden shadow-[0_18px_45px_-24px_rgba(0,0,0,0.6)]">
           {/* LEFT PANEL: Problem Details */}
           <Panel defaultSize={45} minSize={25}>
             <div className="h-full overflow-y-auto bg-card p-6 space-y-6">
@@ -271,7 +271,7 @@ export default function ProblemWorkspaceClient() {
 
           {/* RIGHT PANEL: Editor & Console */}
           <Panel defaultSize={55} minSize={30}>
-            <Group direction="vertical">
+            <Group orientation="vertical">
               <Panel defaultSize={65} minSize={20}>
                 <div className="h-full flex flex-col bg-[#1e1e1e]">
                   <div className="flex-1 relative overflow-hidden">

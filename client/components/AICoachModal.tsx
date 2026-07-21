@@ -131,12 +131,14 @@ export default function AICoachModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className="flex items-center gap-2 rounded-lg bg-purple-600/20 px-4 py-2 text-sm font-medium text-purple-400 transition hover:bg-purple-600/30">
-          <BrainCircuit className="h-4 w-4" />
-          Ask AI Coach
-        </button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <button className="flex items-center gap-2 rounded-lg bg-purple-600/20 px-4 py-2 text-sm font-medium text-purple-400 transition hover:bg-purple-600/30">
+            <BrainCircuit className="h-4 w-4" />
+            Ask AI Coach
+          </button>
+        }
+      />
       <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 overflow-hidden bg-background border-border">
         <DialogHeader className="px-6 py-4 border-b border-border bg-card">
           <DialogTitle className="flex items-center gap-2 text-xl">
