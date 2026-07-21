@@ -254,9 +254,9 @@ export const googleLogin = async (req, res) => {
     if (!user) {
       user = await User.findOne({ email });
       if (user) {
-        // Link existing email to googleId
-        user.googleId = googleId;
-        await user.save();
+        // Link existing email account to googleId using updateOne to bypass full-doc validation
+        await User.updateOne({ _id: user._id }, { $set: { googleId, avatar: picture || user.avatar } });
+        user = await User.findById(user._id);
       } else {
         // Create new user
         const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
