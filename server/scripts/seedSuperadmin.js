@@ -15,13 +15,21 @@ export const seedSuperadmin = async () => {
       await user.save();
       console.log('✅ Superadmin created');
     } else {
-      if (user.role !== 'superadmin') {
-        user.role = 'superadmin';
-        await user.save();
-        console.log('✅ Updated adarshkhare.codes@gmail.com to superadmin');
+      // Use updateOne to avoid full-document revalidation on existing records
+      // (old records may be missing fields that are now required)
+      const updates = {};
+      if (user.role !== 'superadmin') updates.role = 'superadmin';
+      if (!user.username) updates.username = 'adarsh';
+
+      if (Object.keys(updates).length > 0) {
+        await User.updateOne({ email }, { $set: updates });
+        console.log('✅ Updated superadmin:', updates);
+      } else {
+        console.log('✅ Superadmin already up to date');
       }
     }
   } catch (error) {
     console.error('❌ Error seeding superadmin:', error);
   }
 };
+
