@@ -20,6 +20,14 @@ interface ExternalProfiles {
 
 interface User {
   externalProfiles: ExternalProfiles;
+  badges?: Array<{
+    id: string;
+    name: string;
+    icon: string;
+    description: string;
+    unlockedAt: string;
+  }>;
+  dailyChallengeCompleted?: Array<{ date: string }>;
 }
 
 export const useDashboardData = (authUser: any) => {
